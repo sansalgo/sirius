@@ -1,0 +1,63 @@
+"use client"
+
+import { ColumnDef } from "@tanstack/react-table"
+import { ArrowUpDown } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+
+export type PointLedgerEntry = {
+    id: string
+    amount: number
+    type: string
+    createdAt: string
+    fromUser?: { name: string } | null
+}
+
+export const columns: ColumnDef<PointLedgerEntry>[] = [
+    {
+        accessorKey: "type",
+        header: "Type",
+        cell: ({ row }) => {
+            return <div className="font-medium">{row.getValue("type")}</div>
+        },
+    },
+    {
+        accessorKey: "amount",
+        header: "Amount",
+        cell: ({ row }) => {
+            const amount = parseFloat(row.getValue("amount"))
+            const formatted = new Intl.NumberFormat("en-US", {
+                style: "decimal",
+            }).format(amount)
+
+            // Color coding based on positive or negative layout
+            return <div className={amount > 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>{amount > 0 ? `+${formatted}` : formatted}</div>
+        },
+    },
+    {
+        accessorKey: "fromUser.name",
+        header: "From / Initiator",
+        cell: ({ row }) => {
+            const name = row.original.fromUser?.name || "System Request / Generic"
+            return <div>{name}</div>
+        },
+    },
+    {
+        accessorKey: "createdAt",
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                >
+                    Date
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            )
+        },
+        cell: ({ row }) => {
+            const date = new Date(row.getValue("createdAt"))
+            return <div>{date.toLocaleDateString()} {date.toLocaleTimeString()}</div>
+        },
+    },
+]

@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
+    "@tanstack/react-table": "^8.21.3",
     "better-auth": "^1.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

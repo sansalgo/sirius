@@ -8,48 +8,40 @@ import {
   GalleryVerticalEnd,
   Settings2,
   SquareTerminal,
-  StarIcon
+  StarIcon,
+  Users
 } from "lucide-react"
 import * as React from "react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
+  SidebarRail
 } from "@/components/ui/sidebar"
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
   navMain: [
+    {
+      title: "Employees",
+      url: "/employees",
+      icon: Users,
+    },
+    {
+      title: "Rewards",
+      url: "/rewards",
+      icon: StarIcon,
+    },
+    {
+      title: "Points",
+      url: "/points",
+      icon: StarIcon,
+    },
     {
       title: "Playground",
       url: "#",
@@ -161,9 +153,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

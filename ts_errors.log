@@ -1,0 +1,9 @@
+app/(dashboard)/employees/columns.tsx(2,23): error TS2307: Cannot find module '@/components/ui/badge' or its corresponding type declarations.
+components/avatar.tsx(1,10): error TS2440: Import declaration conflicts with local declaration of 'Avatar'.
+components/avatar.tsx(23,22): error TS2559: Type '{ children: Element[]; }' has no properties in common with type 'IntrinsicAttributes'.
+schemas/employee.ts(6,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: readonly ["OWNER", "ADMIN", "MANAGER", "EMPLOYEE"], params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Object literal may only specify known properties, and 'required_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; }'.
+  Overload 2 of 2, '(entries: Readonly<Record<string, EnumValue>>, params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'Readonly<Record<string, EnumValue>>'.
+      Index signature for type 'string' is missing in type 'string[]'.

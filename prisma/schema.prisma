@@ -13,6 +13,37 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  OWNER
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum LedgerType {
+  ALLOCATION
+  REWARD
+  ADJUSTMENT
+}
+
+model Tenant {
+  id               String   @id @default(cuid())
+  name             String
+  subscriptionPlan String?
+  createdAt        DateTime @default(now())
+
+  users              User[]
+  wallets            Wallet[]
+  pointLedgers       PointLedger[]
+  managerAllocations ManagerAllocation[]
+  rewards            Reward[]
+}
+
 model User {
   id            String    @id
   name          String
@@ -23,6 +54,16 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+  role     Role?
+  status   Status?
+
+  wallets            Wallet[]
+  sentLedgers        PointLedger[]       @relation("FromUser")
+  receivedLedgers    PointLedger[]       @relation("ToUser")
+  managerAllocations ManagerAllocation[]
 
   @@unique([email])
   @@map("user")
@@ -74,4 +115,67 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, userId])
+  @@map("wallet")
+}
+
+model PointLedger {
+  id         String     @id @default(cuid())
+  tenantId   String
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  fromUserId String?
+  fromUser   User?      @relation("FromUser", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User       @relation("ToUser", fields: [toUserId], references: [id])
+  amount     Int
+  type       LedgerType
+  createdAt  DateTime   @default(now())
+
+  @@index([tenantId, toUserId])
+  @@index([tenantId, fromUserId])
+  @@index([tenantId, createdAt])
+  @@map("point_ledger")
+}
+
+model ManagerAllocation {
+  id           String @id @default(cuid())
+  tenantId     String
+  tenant       Tenant @relation(fields: [tenantId], references: [id])
+  managerId    String
+  manager      User   @relation(fields: [managerId], references: [id])
+  monthlyLimit Int
+  usedAmount   Int    @default(0)
+  month        Int
+  year         Int
+
+  @@unique([tenantId, managerId, month, year])
+  @@map("manager_allocation")
+}
+
+model Reward {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title          String
+  description    String?
+  pointsRequired Int
+  isActive       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("reward")
 }
