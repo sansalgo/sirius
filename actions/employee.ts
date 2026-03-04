@@ -89,7 +89,8 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
         data: {
           tenantId: currentUser.tenantId as string,
           userId: userId,
-          balance: 0,
+          totalPoints: 0,
+          reservedPoints: 0,
         },
       });
     });

@@ -1,5 +1,8 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { NavUser } from "@/components/nav-user"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -15,7 +18,31 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar"
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const reqHeaders = await headers()
+    const session = await auth.api.getSession({ headers: reqHeaders })
+
+    let availablePoints = 0
+    if (session?.user?.id) {
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { tenantId: true },
+        })
+
+        if (user?.tenantId) {
+            const wallet = await prisma.wallet.findUnique({
+                where: {
+                    tenantId_userId: {
+                        tenantId: user.tenantId,
+                        userId: session.user.id,
+                    },
+                },
+                select: { totalPoints: true, reservedPoints: true },
+            })
+            availablePoints = (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0)
+        }
+    }
+
     return (
         <SidebarProvider>
             <AppSidebar />
@@ -44,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                         </div>
                         <div className="px-4">
-                            <NavUser />
+                            <NavUser availablePoints={availablePoints} />
                         </div>
                     </div>
                 </header>

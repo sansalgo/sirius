@@ -30,7 +30,13 @@ async function getAuthContext() {
     throw new Error("You do not belong to a valid tenant organization.");
   }
 
-  return { session, currentUser };
+  return {
+    session,
+    currentUser: {
+      ...currentUser,
+      tenantId: currentUser.tenantId,
+    },
+  };
 }
 
 /**
@@ -79,7 +85,7 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
         const managerAllocation = await tx.managerAllocation.findUnique({
           where: {
             tenantId_managerId_month_year: {
-              tenantId: tenantId,
+              tenantId,
               managerId: session.user.id,
               month,
               year,
@@ -123,12 +129,13 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
           },
         },
         update: {
-          balance: { increment: amount },
+          totalPoints: { increment: amount },
         },
         create: {
           tenantId,
           userId: toUserId,
-          balance: amount,
+          totalPoints: amount,
+          reservedPoints: 0,
         },
       });
     });
@@ -169,7 +176,8 @@ export async function redeemPoints(data: z.infer<typeof redeemPointsSchema>) {
         },
       });
 
-      if (!wallet || wallet.balance < amount) {
+      const availablePoints = (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0);
+      if (!wallet || availablePoints < amount) {
         throw new Error("Insufficient point balance.");
       }
 
@@ -186,7 +194,7 @@ export async function redeemPoints(data: z.infer<typeof redeemPointsSchema>) {
       await tx.wallet.update({
         where: { id: wallet.id },
         data: {
-          balance: { decrement: amount },
+          totalPoints: { decrement: amount },
         },
       });
     });
@@ -238,8 +246,11 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
       });
 
       if (amount < 0) {
-        if (!wallet || wallet.balance + amount < 0) {
-          throw new Error("Cannot adjust balance below zero.");
+        if (!wallet) {
+          throw new Error("Cannot adjust points because wallet was not found.");
+        }
+        if (wallet.totalPoints + amount < wallet.reservedPoints) {
+          throw new Error("Cannot reduce total points below reserved points.");
         }
       }
 
@@ -263,12 +274,13 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
           },
         },
         update: {
-          balance: { increment: amount },
+          totalPoints: { increment: amount },
         },
         create: {
           tenantId,
           userId,
-          balance: amount > 0 ? amount : 0, 
+          totalPoints: amount > 0 ? amount : 0,
+          reservedPoints: 0,
         },
       });
     });
@@ -281,7 +293,7 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
 }
 
 /**
- * Returns balance and last 20 ledger entries for the logged in user
+ * Returns total/reserved/available points and last 20 ledger entries for the logged in user
  */
 export async function getUserBalance() {
   try {
@@ -295,7 +307,7 @@ export async function getUserBalance() {
           userId: session.user.id,
         },
       },
-      select: { balance: true },
+      select: { totalPoints: true, reservedPoints: true },
     });
 
     const entries = await prisma.pointLedger.findMany({
@@ -309,7 +321,11 @@ export async function getUserBalance() {
 
     return { 
       success: true, 
-      balance: wallet?.balance ?? 0, 
+      totalPoints: wallet?.totalPoints ?? 0,
+      reservedPoints: wallet?.reservedPoints ?? 0,
+      availablePoints: (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0),
+      // Backward compatibility for pages still reading `balance`
+      balance: (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0),
       entries 
     };
   } catch (error: any) {

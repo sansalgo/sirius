@@ -31,6 +31,12 @@ enum LedgerType {
   ADJUSTMENT
 }
 
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Tenant {
   id               String   @id @default(cuid())
   name             String
@@ -42,6 +48,7 @@ model Tenant {
   pointLedgers       PointLedger[]
   managerAllocations ManagerAllocation[]
   rewards            Reward[]
+  redemptions        RewardRedemption[]
 }
 
 model User {
@@ -64,6 +71,7 @@ model User {
   sentLedgers        PointLedger[]       @relation("FromUser")
   receivedLedgers    PointLedger[]       @relation("ToUser")
   managerAllocations ManagerAllocation[]
+  rewardRedemptions  RewardRedemption[]
 
   @@unique([email])
   @@map("user")
@@ -123,7 +131,8 @@ model Wallet {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  balance   Int      @default(0)
+  totalPoints    Int      @default(0)
+  reservedPoints Int      @default(0)
   updatedAt DateTime @updatedAt
 
   @@unique([tenantId, userId])
@@ -175,7 +184,32 @@ model Reward {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  redemptions RewardRedemption[]
 
   @@index([tenantId])
   @@map("reward")
+}
+
+model RewardRedemption {
+  id       String @id @default(cuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rewardId String
+  reward   Reward @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
+  points Int
+
+  status RedemptionStatus @default(PENDING)
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, status, createdAt])
+  @@map("reward_redemption")
 }

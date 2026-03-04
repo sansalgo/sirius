@@ -59,7 +59,8 @@ export async function registerTenantAndUser(data: z.infer<typeof signupSchema>) 
         data: {
           tenantId: tenant.id,
           userId: userId,
-          balance: 0,
+          totalPoints: 0,
+          reservedPoints: 0,
         },
       });
     });

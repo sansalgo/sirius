@@ -1,4 +1,4 @@
-import { columns } from "./columns"
+import { columns, columnsWithRecipient } from "./columns"
 import { DataTable } from "./data-table"
 import { AllocatePointsModal } from "@/components/allocate-points-modal"
 
@@ -20,7 +20,7 @@ async function getData() {
     })
 
     if (!currentUser?.tenantId) {
-        return { entries: [], wallet: null, activeUsers: [], role: "EMPLOYEE" }
+        return { entries: [], wallet: null, activeUsers: [], role: "EMPLOYEE", isElevatedRole: false, availablePoints: 0 }
     }
 
     const wallet = await prisma.wallet.findUnique({
@@ -29,12 +29,21 @@ async function getData() {
                 tenantId: currentUser.tenantId,
                 userId: currentUser.id
             }
-        }
+        },
+        select: { totalPoints: true, reservedPoints: true }
     })
 
+    const isElevatedRole = ["OWNER", "ADMIN", "MANAGER"].includes(currentUser.role || "")
+
     const rawEntries = await prisma.pointLedger.findMany({
-        where: { tenantId: currentUser.tenantId, toUserId: currentUser.id },
-        include: { fromUser: { select: { name: true } } },
+        where: {
+            tenantId: currentUser.tenantId,
+            ...(isElevatedRole ? {} : { toUserId: currentUser.id }),
+        },
+        include: {
+            fromUser: { select: { name: true } },
+            toUser: { select: { name: true } },
+        },
         orderBy: { createdAt: 'desc' }
     })
 
@@ -43,7 +52,8 @@ async function getData() {
         amount: e.amount,
         type: e.type,
         createdAt: e.createdAt.toISOString(),
-        fromUser: e.fromUser
+        fromUser: e.fromUser,
+        toUser: e.toUser,
     }))
 
     const activeUsers = await prisma.user.findMany({
@@ -51,17 +61,20 @@ async function getData() {
         select: { id: true, name: true, email: true }
     })
 
-    return { entries, wallet, activeUsers, role: currentUser.role }
+    const availablePoints = (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0)
+
+    return { entries, wallet, activeUsers, role: currentUser.role, isElevatedRole, availablePoints }
 }
 
 export default async function PointsPage() {
     const data = await getData()
+    const tableColumns = data.isElevatedRole ? columnsWithRecipient : columns
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">
-                    Points History <span className="ml-2 text-xl font-normal text-muted-foreground">(Available Balance: {data.wallet?.balance || 0})</span>
+                    Points History <span className="ml-2 text-xl font-normal text-muted-foreground">(Available Balance: {data.availablePoints})</span>
                 </h2>
                 <div className="flex items-center space-x-2">
                     {["OWNER", "ADMIN", "MANAGER"].includes(data.role || "") && (
@@ -69,7 +82,7 @@ export default async function PointsPage() {
                     )}
                 </div>
             </div>
-            <DataTable columns={columns} data={data.entries} />
+            <DataTable columns={tableColumns} data={data.entries} />
         </div>
     )
 }

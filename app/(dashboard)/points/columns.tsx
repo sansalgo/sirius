@@ -11,9 +11,10 @@ export type PointLedgerEntry = {
     type: string
     createdAt: string
     fromUser?: { name: string } | null
+    toUser?: { name: string } | null
 }
 
-export const columns: ColumnDef<PointLedgerEntry>[] = [
+const baseColumns: ColumnDef<PointLedgerEntry>[] = [
     {
         accessorKey: "type",
         header: "Type",
@@ -60,4 +61,20 @@ export const columns: ColumnDef<PointLedgerEntry>[] = [
             return <div>{date.toLocaleDateString()} {date.toLocaleTimeString()}</div>
         },
     },
+]
+
+const recipientColumn: ColumnDef<PointLedgerEntry> = {
+    accessorKey: "toUser.name",
+    header: "Employee",
+    cell: ({ row }) => <div>{row.original.toUser?.name || "-"}</div>,
+}
+
+export const columns: ColumnDef<PointLedgerEntry>[] = baseColumns
+
+export const columnsWithRecipient: ColumnDef<PointLedgerEntry>[] = [
+    baseColumns[0],
+    baseColumns[1],
+    baseColumns[2],
+    recipientColumn,
+    baseColumns[3],
 ]
