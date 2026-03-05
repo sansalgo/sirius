@@ -27,6 +27,7 @@ enum Status {
 
 enum LedgerType {
   ALLOCATION
+  PEER
   REWARD
   ADJUSTMENT
 }
@@ -35,6 +36,14 @@ enum RedemptionStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum AllocationFrequency {
+  DAILY
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUALLY
+  ANNUALLY
 }
 
 model Tenant {
@@ -47,6 +56,8 @@ model Tenant {
   wallets            Wallet[]
   pointLedgers       PointLedger[]
   managerAllocations ManagerAllocation[]
+  peerAllocations    PeerAllocation[]
+  settings           TenantSettings?
   rewards            Reward[]
   redemptions        RewardRedemption[]
 }
@@ -72,6 +83,7 @@ model User {
   receivedLedgers    PointLedger[]       @relation("ToUser")
   managerAllocations ManagerAllocation[]
   rewardRedemptions  RewardRedemption[]
+  peerAllocations    PeerAllocation[]
 
   @@unique([email])
   @@map("user")
@@ -158,18 +170,57 @@ model PointLedger {
 }
 
 model ManagerAllocation {
-  id           String @id @default(cuid())
-  tenantId     String
-  tenant       Tenant @relation(fields: [tenantId], references: [id])
-  managerId    String
-  manager      User   @relation(fields: [managerId], references: [id])
-  monthlyLimit Int
-  usedAmount   Int    @default(0)
-  month        Int
-  year         Int
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  managerId       String
+  manager         User     @relation(fields: [managerId], references: [id])
+  allocationLimit Int
+  usedAmount      Int      @default(0)
+  periodStart     DateTime
+  periodEnd       DateTime
 
-  @@unique([tenantId, managerId, month, year])
+  @@unique([tenantId, managerId, periodStart])
   @@map("manager_allocation")
+}
+
+model TenantSettings {
+  id String @id @default(cuid())
+
+  tenantId String @unique
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  managerAllocationLimit     Int                 @default(0)
+  managerAllocationFrequency AllocationFrequency @default(MONTHLY)
+
+  peerAllocationLimit     Int                 @default(0)
+  peerAllocationFrequency AllocationFrequency @default(MONTHLY)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tenant_settings")
+}
+
+model PeerAllocation {
+  id String @id @default(cuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  allocationLimit Int
+  usedAmount      Int @default(0)
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, userId, periodStart])
+  @@map("peer_allocation")
 }
 
 model Reward {

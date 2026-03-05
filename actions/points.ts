@@ -4,6 +4,7 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getAllocationPeriod } from "@/lib/utils";
 import {
   allocatePointsSchema,
   redeemPointsSchema,
@@ -58,8 +59,11 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
       return { error: "Insufficient permissions to allocate points." };
     }
 
-    const toUser = await prisma.user.findUnique({
-      where: { id: toUserId },
+    const toUser = await prisma.user.findFirst({
+      where: {
+        id: toUserId,
+        tenantId,
+      },
       select: { tenantId: true, status: true },
     });
 
@@ -76,29 +80,42 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
     }
 
     await prisma.$transaction(async (tx) => {
-      // MANAGER logic checking
+      // MANAGER limit check with lazy allocation record creation.
       if (role === "MANAGER") {
-        const now = new Date();
-        const month = now.getMonth() + 1; // 1-12
-        const year = now.getFullYear();
+        const tenantSettings = await tx.tenantSettings.upsert({
+          where: { tenantId },
+          update: {},
+          create: { tenantId },
+        });
+        const { periodStart, periodEnd } = getAllocationPeriod(
+          tenantSettings.managerAllocationFrequency
+        );
 
-        const managerAllocation = await tx.managerAllocation.findUnique({
+        let managerAllocation = await tx.managerAllocation.findUnique({
           where: {
-            tenantId_managerId_month_year: {
+            tenantId_managerId_periodStart: {
               tenantId,
               managerId: session.user.id,
-              month,
-              year,
+              periodStart,
             },
           },
         });
 
         if (!managerAllocation) {
-          throw new Error("Manager allocation for this month not found.");
+          managerAllocation = await tx.managerAllocation.create({
+            data: {
+              tenantId,
+              managerId: session.user.id,
+              allocationLimit: tenantSettings.managerAllocationLimit,
+              usedAmount: 0,
+              periodStart,
+              periodEnd,
+            },
+          });
         }
 
-        if (managerAllocation.usedAmount + amount > managerAllocation.monthlyLimit) {
-          throw new Error("Monthly point allocation limit exceeded.");
+        if (managerAllocation.usedAmount + amount > managerAllocation.allocationLimit) {
+          throw new Error("Allocation limit exceeded for the current period.");
         }
 
         await tx.managerAllocation.update({
@@ -226,12 +243,15 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
       return { error: "Insufficient permissions to adjust points." };
     }
 
-    const targetUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { tenantId: true },
+    const targetUser = await prisma.user.findFirst({
+      where: {
+        id: userId,
+        tenantId,
+      },
+      select: { id: true },
     });
 
-    if (!targetUser || targetUser.tenantId !== tenantId) {
+    if (!targetUser) {
       return { error: "Target user not found or unauthorized." };
     }
 
@@ -333,3 +353,5 @@ export async function getUserBalance() {
     return { error: error?.message || "An unexpected error occurred." };
   }
 }
+
+export const allocatePointsAction = allocatePoints;

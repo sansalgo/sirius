@@ -3,7 +3,9 @@
 import * as React from "react"
 import {
     ColumnDef,
+    ColumnFiltersState,
     flexRender,
+    getFilteredRowModel,
     getCoreRowModel,
     useReactTable,
     getPaginationRowModel,
@@ -24,13 +26,16 @@ import { Button } from "@/components/ui/button"
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
+    enableLedgerTypeFilter?: boolean
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
+    enableLedgerTypeFilter = false,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>([])
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
     const table = useReactTable({
         data,
@@ -38,14 +43,35 @@ export function DataTable<TData, TValue>({
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         onSortingChange: setSorting,
+        onColumnFiltersChange: setColumnFilters,
         getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
         state: {
             sorting,
+            columnFilters,
         },
     })
 
     return (
         <div>
+            {enableLedgerTypeFilter ? (
+                <div className="mb-3">
+                    <select
+                        value={(table.getColumn("type")?.getFilterValue() as string) ?? "ALL"}
+                        onChange={(event) => {
+                            const value = event.target.value
+                            table.getColumn("type")?.setFilterValue(value === "ALL" ? undefined : value)
+                        }}
+                        className="flex h-10 w-[220px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                        <option value="ALL">All Types</option>
+                        <option value="ALLOCATION">ALLOCATION</option>
+                        <option value="PEER">PEER</option>
+                        <option value="REWARD">REWARD</option>
+                        <option value="ADJUSTMENT">ADJUSTMENT</option>
+                    </select>
+                </div>
+            ) : null}
             <div className="rounded-md border bg-background">
                 <Table>
                     <TableHeader>

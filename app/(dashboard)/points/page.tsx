@@ -82,7 +82,7 @@ export default async function PointsPage() {
                     )}
                 </div>
             </div>
-            <DataTable columns={tableColumns} data={data.entries} />
+            <DataTable columns={tableColumns} data={data.entries} enableLedgerTypeFilter />
         </div>
     )
 }

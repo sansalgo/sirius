@@ -14,12 +14,20 @@ export type PointLedgerEntry = {
     toUser?: { name: string } | null
 }
 
+const LEDGER_TYPE_LABELS: Record<string, string> = {
+    ALLOCATION: "Manager Allocation",
+    PEER: "Peer Recognition",
+    REWARD: "Reward Redemption",
+    ADJUSTMENT: "Admin Adjustment",
+}
+
 const baseColumns: ColumnDef<PointLedgerEntry>[] = [
     {
         accessorKey: "type",
         header: "Type",
         cell: ({ row }) => {
-            return <div className="font-medium">{row.getValue("type")}</div>
+            const type = String(row.getValue("type"))
+            return <div className="font-medium">{LEDGER_TYPE_LABELS[type] ?? type}</div>
         },
     },
     {
@@ -65,7 +73,7 @@ const baseColumns: ColumnDef<PointLedgerEntry>[] = [
 
 const recipientColumn: ColumnDef<PointLedgerEntry> = {
     accessorKey: "toUser.name",
-    header: "Employee",
+    header: "To / Recipient",
     cell: ({ row }) => <div>{row.original.toUser?.name || "-"}</div>,
 }
 

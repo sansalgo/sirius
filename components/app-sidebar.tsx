@@ -2,6 +2,8 @@
 
 import {
   Gift,
+  Handshake,
+  Settings,
   StarIcon,
   Users,
   Wallet
@@ -39,9 +41,19 @@ export function AppSidebar({
       icon: StarIcon,
     },
     {
+      title: "Recognition",
+      url: "/recognition",
+      icon: Handshake,
+    },
+    {
       title: "Employees",
       url: "/employees",
       icon: Users,
+    },
+    {
+      title: "Settings",
+      url: "/settings",
+      icon: Settings,
     },
   ]
 
