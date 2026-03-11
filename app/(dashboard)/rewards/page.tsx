@@ -8,36 +8,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { requirePageAccess } from "@/lib/authz";
+import { can } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import { getUserBalance } from "@/actions/points";
 import { RedeemButton } from "./redeem-button";
 
 async function getData() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true, role: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    return {
-      rewards: [],
-      role: "EMPLOYEE" as const,
-      availablePoints: 0,
-    };
-  }
+  const { user } = await requirePageAccess("rewards.view");
 
   const rewards = await prisma.reward.findMany({
-    where: { tenantId: currentUser.tenantId },
+    where: { tenantId: user.tenantId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -51,15 +32,15 @@ async function getData() {
 
   return {
     rewards,
-    role: currentUser.role ?? "EMPLOYEE",
+    role: user.role,
     availablePoints: balanceResult?.success ? balanceResult.availablePoints : 0,
   };
 }
 
 export default async function RewardsPage() {
   const data = await getData();
-  const canManageRewards = data.role === "ADMIN";
-  const isEmployee = data.role === "EMPLOYEE";
+  const canManageRewards = can(data.role, "rewards.manage");
+  const canRedeemRewards = can(data.role, "rewards.redeem");
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -97,7 +78,7 @@ export default async function RewardsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {isEmployee ? (
+                    {canRedeemRewards ? (
                       <RedeemButton
                         rewardId={reward.id}
                         disabled={!reward.isActive || data.availablePoints < reward.pointsRequired}

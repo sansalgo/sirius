@@ -1,42 +1,69 @@
 "use client"
 
-import { type LucideIcon } from "lucide-react"
+import {
+  Gift,
+  Handshake,
+  LayoutDashboard,
+  Settings,
+  StarIcon,
+  Target,
+  Users,
+  Wallet,
+} from "lucide-react"
 
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar"
 import { useRouter } from "next/navigation"
 
+const iconMap = {
+  dashboard: LayoutDashboard,
+  rewards: Gift,
+  redemptions: Wallet,
+  points: StarIcon,
+  recognition: Handshake,
+  challenges: Target,
+  employees: Users,
+  settings: Settings,
+} as const
+
+export type NavMainIcon = keyof typeof iconMap
+
+export type NavMainItem = {
+  title: string
+  url: string
+  icon?: NavMainIcon
+  isActive?: boolean
+  items?: {
+    title: string
+    url: string
+  }[]
+}
+
 export function NavMain({
   items,
 }: {
-  items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-    isActive?: boolean
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+  items: NavMainItem[]
 }) {
   const router = useRouter()
   return (
     <SidebarGroup>
       <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton onClick={() => router.push(item.url)} tooltip={item.title}>
-              {item.icon && <item.icon />}
-              <span>{item.title}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
+        {items.map((item) => {
+          const Icon = item.icon ? iconMap[item.icon] : null
+
+          return (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton onClick={() => router.push(item.url)} tooltip={item.title}>
+                {Icon ? <Icon /> : null}
+                <span>{item.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )
+        })}
       </SidebarMenu>
     </SidebarGroup>
   )

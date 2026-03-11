@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { headers } from "next/headers";
 import { addEmployeeSchema, editEmployeeSchema } from "@/schemas/employee";
+import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
@@ -24,30 +25,19 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
 
   const { name, email, role } = result.data;
 
-  // 1. Ensure the user making the request belongs to a tenant
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session || !session.user) {
-    return { error: "Unauthorized" };
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { tenantId: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    return { error: "You do not belong to a valid tenant organization." };
-  }
-
   const tempPassword = generateTempPassword();
 
   try {
+    const { user: currentUser } = await getActionAuthContext("employees.manage");
+
+    if (currentUser.role === "MANAGER" && role === "ADMIN") {
+      return { error: "Managers cannot assign the ADMIN role." };
+    }
+
     // 2. Call better-auth email/password signup
     // We create the user via auth API so it hashes the password correctly
     const signUpResponse = await auth.api.signUpEmail({
-      headers: reqHeaders, // Passing current headers preserves the session? Wait!
+      headers: await headers(), // Passing current headers preserves the session? Wait!
       // better-auth signUpEmail creates a new session and logs them in. We don't want the admin logged out.
       // So we use auth.api.signUpEmail without attaching headers that might switch sessions, 
       // or we directly insert and use better-auth underlying password hashing.
@@ -99,9 +89,9 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
       success: true, 
       tempPassword 
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Employee creation error:", error);
-    return { error: error?.message || "An unexpected error occurred during creation" };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred during creation") };
   }
 }
 
@@ -113,33 +103,37 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
 
   const { id, name, role } = result.data;
 
-  // 1. Ensure the user making the request belongs to a tenant
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session || !session.user) {
-    return { error: "Unauthorized" };
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { tenantId: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    return { error: "You do not belong to a valid tenant organization." };
-  }
-
-  // 2. Validate the target user exists and belongs to the same tenant
-  const targetUser = await prisma.user.findUnique({
-    where: { id },
-  });
-
-  if (!targetUser || targetUser.tenantId !== currentUser.tenantId) {
-    return { error: "Employee not found or unauthorized to edit this user." };
-  }
-
   try {
+    const { user: currentUser } = await getActionAuthContext("employees.manage");
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, tenantId: true, role: true },
+    });
+
+    if (!targetUser || targetUser.tenantId !== currentUser.tenantId) {
+      return { error: "Employee not found or unauthorized to edit this user." };
+    }
+
+    if (currentUser.role === "MANAGER") {
+      if (role === "ADMIN" || targetUser.role === "ADMIN") {
+        return { error: "Managers cannot create or edit admin accounts." };
+      }
+    }
+
+    if (currentUser.id === id && targetUser.role === "ADMIN" && role !== "ADMIN") {
+      const adminCount = await prisma.user.count({
+        where: {
+          tenantId: currentUser.tenantId,
+          role: "ADMIN",
+        },
+      });
+
+      if (adminCount <= 1) {
+        return { error: "You cannot remove the last admin from the tenant." };
+      }
+    }
+
     // 3. Update the user details
     await prisma.user.update({
       where: { id },
@@ -150,8 +144,8 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Employee update error:", error);
-    return { error: error?.message || "An unexpected error occurred during update" };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred during update") };
   }
 }

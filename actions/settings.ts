@@ -1,43 +1,18 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { pointsSettingsSchema } from "@/schemas/points-settings";
-
-async function getAuthContext() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true, role: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    throw new Error("You do not belong to a valid tenant organization.");
-  }
-
-  return {
-    userId: currentUser.id,
-    tenantId: currentUser.tenantId,
-    role: currentUser.role,
-  };
-}
 
 export async function getTenantSettings() {
   try {
-    const { tenantId } = await getAuthContext();
+    const { user } = await getActionAuthContext("settings.view");
 
     const settings = await prisma.tenantSettings.upsert({
-      where: { tenantId },
+      where: { tenantId: user.tenantId },
       update: {},
-      create: { tenantId },
+      create: { tenantId: user.tenantId },
       select: {
         managerAllocationLimit: true,
         managerAllocationFrequency: true,
@@ -47,8 +22,8 @@ export async function getTenantSettings() {
     });
 
     return { success: true, settings };
-  } catch (error: any) {
-    return { error: error?.message || "Failed to load tenant settings." };
+  } catch (error: unknown) {
+    return { error: getActionErrorMessage(error, "Failed to load tenant settings.") };
   }
 }
 
@@ -59,14 +34,10 @@ export async function updateTenantSettings(data: z.infer<typeof pointsSettingsSc
   }
 
   try {
-    const { tenantId, role } = await getAuthContext();
-
-    if (role !== "ADMIN") {
-      return { error: "Only ADMIN can update settings." };
-    }
+    const { user } = await getActionAuthContext("settings.manage");
 
     const updated = await prisma.tenantSettings.upsert({
-      where: { tenantId },
+      where: { tenantId: user.tenantId },
       update: {
         managerAllocationLimit: result.data.managerAllocationLimit,
         managerAllocationFrequency: result.data.managerAllocationFrequency,
@@ -74,7 +45,7 @@ export async function updateTenantSettings(data: z.infer<typeof pointsSettingsSc
         peerAllocationFrequency: result.data.peerAllocationFrequency,
       },
       create: {
-        tenantId,
+        tenantId: user.tenantId,
         managerAllocationLimit: result.data.managerAllocationLimit,
         managerAllocationFrequency: result.data.managerAllocationFrequency,
         peerAllocationLimit: result.data.peerAllocationLimit,
@@ -89,7 +60,7 @@ export async function updateTenantSettings(data: z.infer<typeof pointsSettingsSc
     });
 
     return { success: true, settings: updated };
-  } catch (error: any) {
-    return { error: error?.message || "Failed to update tenant settings." };
+  } catch (error: unknown) {
+    return { error: getActionErrorMessage(error, "Failed to update tenant settings.") };
   }
 }

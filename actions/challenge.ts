@@ -1,10 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/rbac";
 import {
   createChallengeSchema,
   deleteChallengeSchema,
@@ -12,34 +12,6 @@ import {
   submitChallengeSchema,
   updateChallengeSchema,
 } from "@/schemas/challenge";
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "An unexpected error occurred.";
-}
-
-async function getAuthContext() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true, role: true, status: true, name: true, email: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    throw new Error("You do not belong to a valid tenant organization.");
-  }
-
-  return { session, currentUser };
-}
 
 function normalizeDate(value?: string) {
   if (!value) {
@@ -55,13 +27,13 @@ function normalizeDate(value?: string) {
 }
 
 function assertManagePermission(role: string | null | undefined) {
-  if (role !== "ADMIN") {
+  if (!can(role, "challenges.manage")) {
     throw new Error("Only ADMIN can manage challenges.");
   }
 }
 
 function assertReviewPermission(role: string | null | undefined) {
-  if (role !== "ADMIN" && role !== "MANAGER") {
+  if (!can(role, "challenges.review")) {
     throw new Error("Only ADMIN and MANAGER can review challenge submissions.");
   }
 }
@@ -73,7 +45,7 @@ export async function createChallengeAction(data: z.infer<typeof createChallenge
   }
 
   try {
-    const { currentUser } = await getAuthContext();
+    const { user: currentUser } = await getActionAuthContext("challenges.manage");
     assertManagePermission(currentUser.role);
 
     const startDate = normalizeDate(result.data.startDate);
@@ -108,7 +80,7 @@ export async function createChallengeAction(data: z.infer<typeof createChallenge
     revalidatePath("/challenges");
     return { success: true };
   } catch (error: unknown) {
-    return { error: getErrorMessage(error) };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
@@ -119,7 +91,7 @@ export async function updateChallengeAction(data: z.infer<typeof updateChallenge
   }
 
   try {
-    const { currentUser } = await getAuthContext();
+    const { user: currentUser } = await getActionAuthContext("challenges.manage");
     assertManagePermission(currentUser.role);
 
     const existingChallenge = await prisma.challenge.findFirst({
@@ -173,7 +145,7 @@ export async function updateChallengeAction(data: z.infer<typeof updateChallenge
     revalidatePath("/challenges");
     return { success: true };
   } catch (error: unknown) {
-    return { error: getErrorMessage(error) };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
@@ -184,7 +156,7 @@ export async function deleteChallengeAction(data: z.infer<typeof deleteChallenge
   }
 
   try {
-    const { currentUser } = await getAuthContext();
+    const { user: currentUser } = await getActionAuthContext("challenges.manage");
     assertManagePermission(currentUser.role);
 
     const challenge = await prisma.challenge.findFirst({
@@ -219,7 +191,7 @@ export async function deleteChallengeAction(data: z.infer<typeof deleteChallenge
     revalidatePath("/challenges");
     return { success: true };
   } catch (error: unknown) {
-    return { error: getErrorMessage(error) };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
@@ -230,11 +202,7 @@ export async function submitChallengeAction(data: z.infer<typeof submitChallenge
   }
 
   try {
-    const { currentUser } = await getAuthContext();
-
-    if (currentUser.status !== "ACTIVE") {
-      return { error: "Only active users can submit challenges." };
-    }
+    const { user: currentUser } = await getActionAuthContext("challenges.submit");
 
     const challenge = await prisma.challenge.findFirst({
       where: {
@@ -381,7 +349,7 @@ export async function submitChallengeAction(data: z.infer<typeof submitChallenge
 
     return { success: true };
   } catch (error: unknown) {
-    return { error: getErrorMessage(error) };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
@@ -394,7 +362,7 @@ export async function reviewChallengeSubmissionAction(
   }
 
   try {
-    const { currentUser } = await getAuthContext();
+    const { user: currentUser } = await getActionAuthContext("challenges.review");
     assertReviewPermission(currentUser.role);
 
     if (result.data.decision === "REJECT" && !result.data.rejectionReason?.trim()) {
@@ -481,6 +449,6 @@ export async function reviewChallengeSubmissionAction(
 
     return { success: true };
   } catch (error: unknown) {
-    return { error: getErrorMessage(error) };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }

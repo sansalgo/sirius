@@ -1,10 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
 import { addRewardSchema, editRewardSchema } from "@/schemas/reward";
+import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 
 export async function createReward(data: z.infer<typeof addRewardSchema>) {
   const result = addRewardSchema.safeParse(data);
@@ -14,31 +13,9 @@ export async function createReward(data: z.infer<typeof addRewardSchema>) {
 
   const { title, description, pointsRequired, isActive } = result.data;
 
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session || !session.user) {
-    return { error: "Unauthorized" };
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { tenantId: true, role: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    return { error: "You do not belong to a valid tenant organization." };
-  }
-
-  if (currentUser.role !== "ADMIN") {
-    return { error: "Insufficient permissions to manage rewards." };
-  }
-
-  if (!currentUser?.tenantId) {
-    return { error: "You do not belong to a valid tenant organization." };
-  }
-
   try {
+    const { user: currentUser } = await getActionAuthContext("rewards.manage");
+
     await prisma.reward.create({
       data: {
         tenantId: currentUser.tenantId,
@@ -49,9 +26,9 @@ export async function createReward(data: z.infer<typeof addRewardSchema>) {
       },
     });
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Reward creation error:", error);
-    return { error: "An unexpected error occurred during creation" };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred during creation") };
   }
 }
 
@@ -63,39 +40,17 @@ export async function updateReward(data: z.infer<typeof editRewardSchema>) {
 
   const { id, title, description, pointsRequired, isActive } = result.data;
 
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session || !session.user) {
-    return { error: "Unauthorized" };
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { tenantId: true, role: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    return { error: "You do not belong to a valid tenant organization." };
-  }
-
-  if (currentUser.role !== "ADMIN") {
-    return { error: "Insufficient permissions to manage rewards." };
-  }
-
-  if (!currentUser?.tenantId) {
-    return { error: "You do not belong to a valid tenant organization." };
-  }
-
-  const targetReward = await prisma.reward.findUnique({
-    where: { id },
-  });
-
-  if (!targetReward || targetReward.tenantId !== currentUser.tenantId) {
-    return { error: "Reward not found or unauthorized to edit." };
-  }
-
   try {
+    const { user: currentUser } = await getActionAuthContext("rewards.manage");
+
+    const targetReward = await prisma.reward.findUnique({
+      where: { id },
+    });
+
+    if (!targetReward || targetReward.tenantId !== currentUser.tenantId) {
+      return { error: "Reward not found or unauthorized to edit." };
+    }
+
     await prisma.reward.update({
       where: { id },
       data: {
@@ -106,8 +61,8 @@ export async function updateReward(data: z.infer<typeof editRewardSchema>) {
       },
     });
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Reward update error:", error);
-    return { error: "An unexpected error occurred during update" };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred during update") };
   }
 }

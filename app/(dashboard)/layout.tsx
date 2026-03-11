@@ -1,7 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { NavUser } from "@/components/nav-user"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { requirePageAccess } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
 import {
     Breadcrumb,
@@ -19,33 +18,26 @@ import {
 } from "@/components/ui/sidebar"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const reqHeaders = await headers()
-    const session = await auth.api.getSession({ headers: reqHeaders })
+    const { user } = await requirePageAccess("dashboard.view")
 
     let availablePoints = 0
-    if (session?.user?.id) {
-        const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { tenantId: true },
-        })
+    const wallet = await prisma.wallet.findUnique({
+        where: {
+            tenantId_userId: {
+                tenantId: user.tenantId,
+                userId: user.id,
+            },
+        },
+        select: { totalPoints: true, reservedPoints: true },
+    })
 
-        if (user?.tenantId) {
-            const wallet = await prisma.wallet.findUnique({
-                where: {
-                    tenantId_userId: {
-                        tenantId: user.tenantId,
-                        userId: session.user.id,
-                    },
-                },
-                select: { totalPoints: true, reservedPoints: true },
-            })
-            availablePoints = (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0)
-        }
+    if (wallet) {
+        availablePoints = (wallet.totalPoints ?? 0) - (wallet.reservedPoints ?? 0)
     }
 
     return (
         <SidebarProvider>
-            <AppSidebar />
+            <AppSidebar role={user.role} />
             <SidebarInset>
                 <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
                     <div className="flex justify-between w-full">

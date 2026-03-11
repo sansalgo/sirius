@@ -1,44 +1,14 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
+import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { getAllocationPeriod } from "@/lib/utils";
 import {
   allocatePointsSchema,
   redeemPointsSchema,
   adjustPointsSchema,
 } from "@/schemas/points";
-
-/**
- * Ensures a valid session and returns the current user along with their tenant and role.
- */
-async function getAuthContext() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session || !session.user) {
-    throw new Error("Unauthorized");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true, role: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    throw new Error("You do not belong to a valid tenant organization.");
-  }
-
-  return {
-    session,
-    currentUser: {
-      ...currentUser,
-      tenantId: currentUser.tenantId,
-    },
-  };
-}
 
 /**
  * Allocate points from Manager/Owner/Admin to an active user
@@ -52,12 +22,8 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
   const { toUserId, amount } = result.data;
 
   try {
-    const { session, currentUser } = await getAuthContext();
+    const { session, user: currentUser } = await getActionAuthContext("points.allocate");
     const { tenantId, role } = currentUser;
-
-    if (role !== "ADMIN" && role !== "MANAGER") {
-      return { error: "Insufficient permissions to allocate points." };
-    }
 
     const toUser = await prisma.user.findFirst({
       where: {
@@ -158,9 +124,9 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Point allocation error:", error);
-    return { error: error?.message || "An unexpected error occurred." };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
@@ -176,12 +142,8 @@ export async function redeemPoints(data: z.infer<typeof redeemPointsSchema>) {
   const { amount } = result.data;
 
   try {
-    const { session, currentUser } = await getAuthContext();
-    const { tenantId, role } = currentUser;
-
-    if (role !== "EMPLOYEE") {
-      return { error: "Only employees can redeem points." };
-    }
+    const { session, user: currentUser } = await getActionAuthContext("rewards.redeem");
+    const { tenantId } = currentUser;
 
     await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({
@@ -217,9 +179,9 @@ export async function redeemPoints(data: z.infer<typeof redeemPointsSchema>) {
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Point redemption error:", error);
-    return { error: error?.message || "An unexpected error occurred." };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
@@ -233,15 +195,11 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
   }
 
   // reason mapped here but DB only has generic ledger fields.
-  const { userId, amount, reason } = result.data; 
+  const { userId, amount } = result.data; 
 
   try {
-    const { session, currentUser } = await getAuthContext();
-    const { tenantId, role } = currentUser;
-
-    if (role !== "ADMIN") {
-      return { error: "Insufficient permissions to adjust points." };
-    }
+    const { session, user: currentUser } = await getActionAuthContext("points.adjust");
+    const { tenantId } = currentUser;
 
     const targetUser = await prisma.user.findFirst({
       where: {
@@ -306,9 +264,9 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Point adjustment error:", error);
-    return { error: error?.message || "An unexpected error occurred." };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
@@ -317,7 +275,7 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
  */
 export async function getUserBalance() {
   try {
-    const { session, currentUser } = await getAuthContext();
+    const { session, user: currentUser } = await getActionAuthContext("points.view");
     const { tenantId } = currentUser;
 
     const wallet = await prisma.wallet.findUnique({
@@ -348,9 +306,9 @@ export async function getUserBalance() {
       balance: (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0),
       entries 
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get user balance error:", error);
-    return { error: error?.message || "An unexpected error occurred." };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 

@@ -1,6 +1,4 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requirePageAccess } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getPeerAllocationStatus } from "@/actions/peer";
 import { PeerSendForm } from "./peer-send-form";
@@ -14,38 +12,24 @@ import {
 } from "@/components/ui/table";
 
 async function getData() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    redirect("/login");
-  }
+  const { user } = await requirePageAccess("recognition.view");
 
   const [statusResult, employees, transfers] = await Promise.all([
     getPeerAllocationStatus(),
     prisma.user.findMany({
       where: {
-        tenantId: currentUser.tenantId,
+        tenantId: user.tenantId,
         status: "ACTIVE",
-        id: { not: currentUser.id },
+        id: { not: user.id },
       },
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
     prisma.pointLedger.findMany({
       where: {
-        tenantId: currentUser.tenantId,
+        tenantId: user.tenantId,
         type: "PEER",
-        OR: [{ fromUserId: currentUser.id }, { toUserId: currentUser.id }],
+        OR: [{ fromUserId: user.id }, { toUserId: user.id }],
       },
       include: {
         fromUser: { select: { name: true } },

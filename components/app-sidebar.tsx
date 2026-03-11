@@ -1,18 +1,10 @@
-"use client"
-
 import {
-  Gift,
-  Handshake,
-  LayoutDashboard,
-  Settings,
   StarIcon,
-  Target,
-  Users,
-  Wallet
 } from "lucide-react"
-import * as React from "react"
+import type { ComponentProps } from "react"
 
-import { NavMain } from "@/components/nav-main"
+import { can, type AppRole } from "@/lib/rbac"
+import { NavMain, type NavMainItem } from "@/components/nav-main"
 import {
   Sidebar,
   SidebarContent,
@@ -24,50 +16,67 @@ import {
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({
+  role,
   ...props
-}: React.ComponentProps<typeof Sidebar>) {
+}: ComponentProps<typeof Sidebar> & { role: AppRole }) {
   const navMain = [
     {
       title: "Leaderboard",
       url: "/dashboard",
-      icon: LayoutDashboard,
+      icon: "dashboard",
+      visible: can(role, "dashboard.view"),
     },
     {
       title: "Rewards",
       url: "/rewards",
-      icon: Gift,
+      icon: "rewards",
+      visible: can(role, "rewards.view"),
     },
     {
       title: "Redemptions",
       url: "/redemptions",
-      icon: Wallet,
+      icon: "redemptions",
+      visible: can(role, "redemptions.view"),
     },
     {
       title: "Points",
       url: "/points",
-      icon: StarIcon,
+      icon: "points",
+      visible: can(role, "points.view"),
     },
     {
       title: "Recognition",
       url: "/recognition",
-      icon: Handshake,
+      icon: "recognition",
+      visible: can(role, "recognition.view"),
     },
     {
       title: "Challenges",
       url: "/challenges",
-      icon: Target,
+      icon: "challenges",
+      visible: can(role, "challenges.view"),
     },
     {
       title: "Employees",
       url: "/employees",
-      icon: Users,
+      icon: "employees",
+      visible: can(role, "employees.read"),
     },
     {
       title: "Settings",
       url: "/settings",
-      icon: Settings,
+      icon: "settings",
+      visible: can(role, "settings.view"),
     },
-  ]
+  ] as const
+
+  const visibleNavMain: NavMainItem[] = navMain
+    .filter((item) => item.visible)
+    .map((item) => ({
+      title: item.title,
+      url: item.url,
+      icon: item.icon,
+    }))
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -89,7 +98,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain items={visibleNavMain} />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

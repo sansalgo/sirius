@@ -2,43 +2,29 @@ import { columns, columnsWithRecipient } from "./columns"
 import { DataTable } from "./data-table"
 import { AllocatePointsModal } from "@/components/allocate-points-modal"
 
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { can } from "@/lib/rbac"
+import { requirePageAccess } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
 
 async function getData() {
-    const reqHeaders = await headers()
-    const session = await auth.api.getSession({ headers: reqHeaders })
-
-    if (!session?.user?.id) {
-        redirect("/login")
-    }
-
-    const currentUser = await prisma.user.findUnique({
-        where: { id: session.user.id }
-    })
-
-    if (!currentUser?.tenantId) {
-        return { entries: [], wallet: null, activeUsers: [], role: "EMPLOYEE", isElevatedRole: false, availablePoints: 0 }
-    }
+    const { user } = await requirePageAccess("points.view")
 
     const wallet = await prisma.wallet.findUnique({
         where: {
             tenantId_userId: {
-                tenantId: currentUser.tenantId,
-                userId: currentUser.id
+                tenantId: user.tenantId,
+                userId: user.id
             }
         },
         select: { totalPoints: true, reservedPoints: true }
     })
 
-    const isElevatedRole = ["ADMIN", "MANAGER"].includes(currentUser.role || "")
+    const isElevatedRole = can(user.role, "points.allocate")
 
     const rawEntries = await prisma.pointLedger.findMany({
         where: {
-            tenantId: currentUser.tenantId,
-            ...(isElevatedRole ? {} : { toUserId: currentUser.id }),
+            tenantId: user.tenantId,
+            ...(isElevatedRole ? {} : { toUserId: user.id }),
         },
         include: {
             fromUser: { select: { name: true } },
@@ -57,13 +43,13 @@ async function getData() {
     }))
 
     const activeUsers = await prisma.user.findMany({
-        where: { tenantId: currentUser.tenantId, status: "ACTIVE" },
+        where: { tenantId: user.tenantId, status: "ACTIVE" },
         select: { id: true, name: true, email: true }
     })
 
     const availablePoints = (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0)
 
-    return { entries, wallet, activeUsers, role: currentUser.role, isElevatedRole, availablePoints }
+    return { entries, wallet, activeUsers, role: user.role, isElevatedRole, availablePoints }
 }
 
 export default async function PointsPage() {
@@ -77,7 +63,7 @@ export default async function PointsPage() {
                     Points History <span className="ml-2 text-xl font-normal text-muted-foreground">(Available Balance: {data.availablePoints})</span>
                 </h2>
                 <div className="flex items-center space-x-2">
-                    {["ADMIN", "MANAGER"].includes(data.role || "") && (
+                    {can(data.role, "points.allocate") && (
                         <AllocatePointsModal users={data.activeUsers} />
                     )}
                 </div>

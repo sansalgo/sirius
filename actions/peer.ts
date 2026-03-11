@@ -1,40 +1,15 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
+import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { getAllocationPeriod } from "@/lib/utils";
 import { sendPeerPointsSchema } from "@/schemas/peer";
 
-async function getAuthContext() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true, role: true, status: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    throw new Error("You do not belong to a valid tenant organization.");
-  }
-
-  return {
-    userId: currentUser.id,
-    tenantId: currentUser.tenantId,
-    role: currentUser.role,
-    status: currentUser.status,
-  };
-}
-
 export async function getPeerAllocationStatus() {
   try {
-    const { userId, tenantId } = await getAuthContext();
+    const { user } = await getActionAuthContext("recognition.view");
+    const { id: userId, tenantId } = user;
 
     const tenantSettings = await prisma.tenantSettings.upsert({
       where: { tenantId },
@@ -79,8 +54,8 @@ export async function getPeerAllocationStatus() {
         periodEnd: allocation?.periodEnd ?? periodEnd,
       },
     };
-  } catch (error: any) {
-    return { error: error?.message || "Failed to load peer allocation status." };
+  } catch (error: unknown) {
+    return { error: getActionErrorMessage(error, "Failed to load peer allocation status.") };
   }
 }
 
@@ -93,7 +68,8 @@ export async function sendPeerPointsAction(data: z.infer<typeof sendPeerPointsSc
   const { toUserId, amount } = result.data;
 
   try {
-    const { userId, tenantId } = await getAuthContext();
+    const { user } = await getActionAuthContext("peer.send");
+    const { id: userId, tenantId } = user;
 
     if (userId === toUserId) {
       return { error: "You cannot send points to yourself." };
@@ -199,7 +175,7 @@ export async function sendPeerPointsAction(data: z.infer<typeof sendPeerPointsSc
     });
 
     return { success: true };
-  } catch (error: any) {
-    return { error: error?.message || "Failed to send peer points." };
+  } catch (error: unknown) {
+    return { error: getActionErrorMessage(error, "Failed to send peer points.") };
   }
 }

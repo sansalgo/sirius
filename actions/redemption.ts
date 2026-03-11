@@ -1,42 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { redeemRewardSchema, rejectRedemptionSchema } from "@/schemas/redemption";
-
-async function getAuthContext() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true, role: true, name: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    throw new Error("You do not belong to a valid tenant organization.");
-  }
-
-  const tenantId = currentUser.tenantId;
-  if (!tenantId) {
-    throw new Error("You do not belong to a valid tenant organization.");
-  }
-
-  return {
-    session,
-    currentUser: {
-      ...currentUser,
-      tenantId,
-    },
-  };
-}
 
 export async function redeemRewardAction(data: z.infer<typeof redeemRewardSchema>) {
   const result = redeemRewardSchema.safeParse(data);
@@ -47,12 +15,8 @@ export async function redeemRewardAction(data: z.infer<typeof redeemRewardSchema
   const { rewardId } = result.data;
 
   try {
-    const { session, currentUser } = await getAuthContext();
-    const { tenantId, role } = currentUser;
-
-    if (role !== "EMPLOYEE") {
-      return { error: "Only employees can redeem rewards." };
-    }
+    const { session, user: currentUser } = await getActionAuthContext("rewards.redeem");
+    const { tenantId } = currentUser;
 
     const reward = await prisma.reward.findFirst({
       where: {
@@ -113,15 +77,15 @@ export async function redeemRewardAction(data: z.infer<typeof redeemRewardSchema
     revalidatePath("/redemptions");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Reward redemption error:", error);
-    return { error: error?.message || "An unexpected error occurred." };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }
 
 export async function getAvailableRewards() {
   try {
-    const { currentUser } = await getAuthContext();
+    const { user: currentUser } = await getActionAuthContext("rewards.view");
     const { tenantId } = currentUser;
 
     const rewards = await prisma.reward.findMany({
@@ -133,15 +97,15 @@ export async function getAvailableRewards() {
     });
 
     return { success: true, rewards };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get available rewards error:", error);
-    return { error: error?.message || "An unexpected error occurred.", rewards: [] };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred."), rewards: [] };
   }
 }
 
 export async function getUserRedemptions() {
   try {
-    const { session, currentUser } = await getAuthContext();
+    const { session, user: currentUser } = await getActionAuthContext("redemptions.view");
     const { tenantId } = currentUser;
 
     const redemptions = await prisma.rewardRedemption.findMany({
@@ -158,20 +122,16 @@ export async function getUserRedemptions() {
     });
 
     return { success: true, redemptions };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get user redemptions error:", error);
-    return { error: error?.message || "An unexpected error occurred.", redemptions: [] };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred."), redemptions: [] };
   }
 }
 
 export async function getTenantRedemptions() {
   try {
-    const { currentUser } = await getAuthContext();
-    const { tenantId, role } = currentUser;
-
-    if (role !== "ADMIN" && role !== "MANAGER") {
-      return { error: "Insufficient permissions.", redemptions: [] };
-    }
+    const { user: currentUser } = await getActionAuthContext("redemptions.review");
+    const { tenantId } = currentUser;
 
     const redemptions = await prisma.rewardRedemption.findMany({
       where: { tenantId },
@@ -187,9 +147,9 @@ export async function getTenantRedemptions() {
     });
 
     return { success: true, redemptions };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get tenant redemptions error:", error);
-    return { error: error?.message || "An unexpected error occurred.", redemptions: [] };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred."), redemptions: [] };
   }
 }
 
@@ -231,12 +191,8 @@ async function updateRedemptionStatusAction(args: {
   }
 
   try {
-    const { currentUser } = await getAuthContext();
-    const { tenantId, role } = currentUser;
-
-    if (role !== "ADMIN" && role !== "MANAGER") {
-      return { error: "Insufficient permissions." };
-    }
+    const { user: currentUser } = await getActionAuthContext("redemptions.review");
+    const { tenantId } = currentUser;
 
     const redemption = await prisma.rewardRedemption.findFirst({
       where: {
@@ -316,8 +272,8 @@ async function updateRedemptionStatusAction(args: {
     revalidatePath("/points");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Update redemption status error:", error);
-    return { error: error?.message || "An unexpected error occurred." };
+    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
   }
 }

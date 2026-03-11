@@ -1,7 +1,5 @@
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+import { requirePageAccess } from "@/lib/authz";
+import { can } from "@/lib/rbac";
 import { getTenantRedemptions, getUserRedemptions } from "@/actions/redemption";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,23 +19,21 @@ function getStatusVariant(status: "PENDING" | "APPROVED" | "REJECTED") {
 }
 
 export default async function RedemptionsPage() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true },
-  });
-
-  const role = currentUser?.role ?? "EMPLOYEE";
-  const canReview = role === "ADMIN" || role === "MANAGER";
+  const { session, user } = await requirePageAccess("redemptions.view");
+  const canReview = can(user.role, "redemptions.review");
 
   const result = canReview ? await getTenantRedemptions() : await getUserRedemptions();
-  const redemptions = (result?.redemptions ?? []).map((redemption: any) => ({
+  const rawRedemptions = (result?.redemptions ?? []) as Array<{
+    id: string;
+    points: number;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    createdAt: Date;
+    user?: { name: string; email: string };
+    reward: { title: string };
+    rejectionReason?: string | null;
+  }>;
+
+  const redemptions = rawRedemptions.map((redemption) => ({
     id: redemption.id,
     points: redemption.points,
     status: redemption.status,

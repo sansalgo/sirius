@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -26,11 +26,17 @@ interface EditEmployeeModalProps {
         name: string;
         role: "ADMIN" | "MANAGER" | "EMPLOYEE";
     };
+    canAssignAdminRole: boolean;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
-export function EditEmployeeModal({ employee, open, onOpenChange }: EditEmployeeModalProps) {
+export function EditEmployeeModal({
+    employee,
+    canAssignAdminRole,
+    open,
+    onOpenChange,
+}: EditEmployeeModalProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
@@ -88,7 +94,7 @@ export function EditEmployeeModal({ employee, open, onOpenChange }: EditEmployee
                         >
                             <option value="EMPLOYEE">Employee</option>
                             <option value="MANAGER">Manager</option>
-                            <option value="ADMIN">Admin</option>
+                            {canAssignAdminRole ? <option value="ADMIN">Admin</option> : null}
                         </select>
                         {form.formState.errors.role && (
                             <FieldDescription className="text-red-500">{form.formState.errors.role.message}</FieldDescription>

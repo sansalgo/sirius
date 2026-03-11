@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
 
-export function AddEmployeeModal() {
+export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: boolean }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -116,7 +116,7 @@ export function AddEmployeeModal() {
                                 >
                                     <option value="EMPLOYEE">Employee</option>
                                     <option value="MANAGER">Manager</option>
-                                    <option value="ADMIN">Admin</option>
+                                    {canAssignAdminRole ? <option value="ADMIN">Admin</option> : null}
                                 </select>
                                 {form.formState.errors.role && (
                                     <FieldDescription className="text-red-500">{form.formState.errors.role.message}</FieldDescription>

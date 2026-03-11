@@ -1,6 +1,5 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requirePageAccess } from "@/lib/authz";
+import { can } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { ChallengesTable } from "@/components/challenges-table";
 
@@ -43,28 +42,13 @@ function parseSubmissionAnswers(value: unknown): SubmissionAnswer[] {
 }
 
 async function getData() {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({ headers: reqHeaders });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, tenantId: true, role: true, status: true },
-  });
-
-  if (!currentUser?.tenantId) {
-    redirect("/login");
-  }
-
-  const canManage = currentUser.role === "ADMIN";
-  const canReview = currentUser.role === "ADMIN" || currentUser.role === "MANAGER";
+  const { user } = await requirePageAccess("challenges.view");
+  const canManageChallenges = can(user.role, "challenges.manage");
+  const canReviewChallenges = can(user.role, "challenges.review");
 
   const [challenges, mySubmissions, pendingSubmissions] = await Promise.all([
     prisma.challenge.findMany({
-      where: { tenantId: currentUser.tenantId },
+      where: { tenantId: user.tenantId },
       include: {
         fields: {
           orderBy: { sortOrder: "asc" },
@@ -74,8 +58,8 @@ async function getData() {
     }),
     prisma.challengeSubmission.findMany({
       where: {
-        tenantId: currentUser.tenantId,
-        userId: currentUser.id,
+        tenantId: user.tenantId,
+        userId: user.id,
       },
       select: {
         id: true,
@@ -86,10 +70,10 @@ async function getData() {
       },
       orderBy: { submittedAt: "desc" },
     }),
-    canReview
+    canReviewChallenges
       ? prisma.challengeSubmission.findMany({
           where: {
-            tenantId: currentUser.tenantId,
+            tenantId: user.tenantId,
             status: "PENDING",
           },
           include: {
@@ -143,9 +127,9 @@ async function getData() {
   }
 
   return {
-    currentUser,
-    canManage,
-    canReview,
+    currentUser: user,
+    canManage: canManageChallenges,
+    canReview: canReviewChallenges,
     challenges: challenges.map((challenge) => {
       const latestSubmission = latestSubmissionByChallenge.get(challenge.id);
 
