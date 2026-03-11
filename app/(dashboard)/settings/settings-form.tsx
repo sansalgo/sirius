@@ -49,7 +49,7 @@ export function SettingsForm({ canEdit, defaultValues }: SettingsFormProps) {
 
       {!canEdit ? (
         <p className="text-sm text-muted-foreground">
-          Only OWNER and ADMIN can update tenant settings.
+          Only ADMIN can update tenant settings.
         </p>
       ) : null}
 

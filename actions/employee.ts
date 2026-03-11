@@ -79,7 +79,7 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
         where: { id: userId },
         data: {
           tenantId: currentUser.tenantId,
-          role: role as "OWNER" | "ADMIN" | "MANAGER" | "EMPLOYEE",
+          role: role as "ADMIN" | "MANAGER" | "EMPLOYEE",
           status: "ACTIVE",
         },
       });
@@ -145,7 +145,7 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
       where: { id },
       data: {
         name,
-        role: role as "OWNER" | "ADMIN" | "MANAGER" | "EMPLOYEE",
+        role: role as "ADMIN" | "MANAGER" | "EMPLOYEE",
       },
     });
 

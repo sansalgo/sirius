@@ -33,7 +33,7 @@ async function getData() {
         select: { totalPoints: true, reservedPoints: true }
     })
 
-    const isElevatedRole = ["OWNER", "ADMIN", "MANAGER"].includes(currentUser.role || "")
+    const isElevatedRole = ["ADMIN", "MANAGER"].includes(currentUser.role || "")
 
     const rawEntries = await prisma.pointLedger.findMany({
         where: {
@@ -77,7 +77,7 @@ export default async function PointsPage() {
                     Points History <span className="ml-2 text-xl font-normal text-muted-foreground">(Available Balance: {data.availablePoints})</span>
                 </h2>
                 <div className="flex items-center space-x-2">
-                    {["OWNER", "ADMIN", "MANAGER"].includes(data.role || "") && (
+                    {["ADMIN", "MANAGER"].includes(data.role || "") && (
                         <AllocatePointsModal users={data.activeUsers} />
                     )}
                 </div>

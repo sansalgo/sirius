@@ -34,7 +34,7 @@ export default async function RedemptionsPage() {
   });
 
   const role = currentUser?.role ?? "EMPLOYEE";
-  const canReview = role === "OWNER" || role === "ADMIN" || role === "MANAGER";
+  const canReview = role === "ADMIN" || role === "MANAGER";
 
   const result = canReview ? await getTenantRedemptions() : await getUserRedemptions();
   const redemptions = (result?.redemptions ?? []).map((redemption: any) => ({

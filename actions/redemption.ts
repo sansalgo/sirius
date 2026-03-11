@@ -169,7 +169,7 @@ export async function getTenantRedemptions() {
     const { currentUser } = await getAuthContext();
     const { tenantId, role } = currentUser;
 
-    if (role !== "OWNER" && role !== "ADMIN" && role !== "MANAGER") {
+    if (role !== "ADMIN" && role !== "MANAGER") {
       return { error: "Insufficient permissions.", redemptions: [] };
     }
 
@@ -234,7 +234,7 @@ async function updateRedemptionStatusAction(args: {
     const { currentUser } = await getAuthContext();
     const { tenantId, role } = currentUser;
 
-    if (role !== "OWNER" && role !== "ADMIN" && role !== "MANAGER") {
+    if (role !== "ADMIN" && role !== "MANAGER") {
       return { error: "Insufficient permissions." };
     }
 

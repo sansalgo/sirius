@@ -30,7 +30,7 @@ export async function createReward(data: z.infer<typeof addRewardSchema>) {
     return { error: "You do not belong to a valid tenant organization." };
   }
 
-  if (currentUser.role !== "OWNER" && currentUser.role !== "ADMIN") {
+  if (currentUser.role !== "ADMIN") {
     return { error: "Insufficient permissions to manage rewards." };
   }
 
@@ -79,7 +79,7 @@ export async function updateReward(data: z.infer<typeof editRewardSchema>) {
     return { error: "You do not belong to a valid tenant organization." };
   }
 
-  if (currentUser.role !== "OWNER" && currentUser.role !== "ADMIN") {
+  if (currentUser.role !== "ADMIN") {
     return { error: "Insufficient permissions to manage rewards." };
   }
 

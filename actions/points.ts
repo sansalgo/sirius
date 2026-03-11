@@ -55,7 +55,7 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
     const { session, currentUser } = await getAuthContext();
     const { tenantId, role } = currentUser;
 
-    if (role !== "OWNER" && role !== "ADMIN" && role !== "MANAGER") {
+    if (role !== "ADMIN" && role !== "MANAGER") {
       return { error: "Insufficient permissions to allocate points." };
     }
 
@@ -224,7 +224,7 @@ export async function redeemPoints(data: z.infer<typeof redeemPointsSchema>) {
 }
 
 /**
- * Manual adjustment by OWNER/ADMIN
+ * Manual adjustment by ADMIN
  */
 export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
   const result = adjustPointsSchema.safeParse(data);
@@ -239,7 +239,7 @@ export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
     const { session, currentUser } = await getAuthContext();
     const { tenantId, role } = currentUser;
 
-    if (role !== "OWNER" && role !== "ADMIN") {
+    if (role !== "ADMIN") {
       return { error: "Insufficient permissions to adjust points." };
     }
 

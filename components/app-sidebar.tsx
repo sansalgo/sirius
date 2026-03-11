@@ -3,8 +3,10 @@
 import {
   Gift,
   Handshake,
+  LayoutDashboard,
   Settings,
   StarIcon,
+  Target,
   Users,
   Wallet
 } from "lucide-react"
@@ -26,6 +28,11 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const navMain = [
     {
+      title: "Leaderboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
       title: "Rewards",
       url: "/rewards",
       icon: Gift,
@@ -44,6 +51,11 @@ export function AppSidebar({
       title: "Recognition",
       url: "/recognition",
       icon: Handshake,
+    },
+    {
+      title: "Challenges",
+      url: "/challenges",
+      icon: Target,
     },
     {
       title: "Employees",

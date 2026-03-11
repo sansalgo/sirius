@@ -24,7 +24,7 @@ interface EditEmployeeModalProps {
     employee: {
         id: string;
         name: string;
-        role: "OWNER" | "ADMIN" | "MANAGER" | "EMPLOYEE";
+        role: "ADMIN" | "MANAGER" | "EMPLOYEE";
     };
     open: boolean;
     onOpenChange: (open: boolean) => void;

@@ -1,3 +1,5 @@
+"use client"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,8 +17,28 @@ import {
   LogOutIcon,
   Wallet,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useTransition } from "react"
+
+import { authClient } from "@/lib/auth-client"
 
 export function NavUser({ availablePoints }: { availablePoints: number }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  const handleSignOut = () => {
+    startTransition(async () => {
+      const { error } = await authClient.signOut()
+
+      if (error) {
+        return
+      }
+
+      router.push("/login")
+      router.refresh()
+    })
+  }
+
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1 rounded-md border px-2 py-1 text-sm">
@@ -48,9 +70,15 @@ export function NavUser({ availablePoints }: { availablePoints: number }) {
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={isPending}
+            onSelect={(event) => {
+              event.preventDefault()
+              handleSignOut()
+            }}
+          >
             <LogOutIcon />
-            Sign Out
+            {isPending ? "Signing Out..." : "Sign Out"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

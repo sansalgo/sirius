@@ -61,8 +61,8 @@ export async function updateTenantSettings(data: z.infer<typeof pointsSettingsSc
   try {
     const { tenantId, role } = await getAuthContext();
 
-    if (role !== "OWNER" && role !== "ADMIN") {
-      return { error: "Only OWNER and ADMIN can update settings." };
+    if (role !== "ADMIN") {
+      return { error: "Only ADMIN can update settings." };
     }
 
     const updated = await prisma.tenantSettings.upsert({

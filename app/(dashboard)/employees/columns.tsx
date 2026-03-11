@@ -21,7 +21,7 @@ export type Employee = {
     id: string
     name: string
     email: string
-    role: "OWNER" | "ADMIN" | "MANAGER" | "EMPLOYEE"
+    role: "ADMIN" | "MANAGER" | "EMPLOYEE"
     status: "ACTIVE" | "INACTIVE"
     createdAt: string
 }
@@ -41,7 +41,7 @@ export const columns: ColumnDef<Employee>[] = [
         cell: ({ row }) => {
             const role = row.getValue("role") as string
             return (
-                <Badge variant={role === "OWNER" ? "default" : role === "ADMIN" ? "secondary" : "outline"}>
+                <Badge variant={role === "ADMIN" ? "secondary" : "outline"}>
                     {role}
                 </Badge>
             )

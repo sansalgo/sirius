@@ -58,7 +58,7 @@ async function getData() {
 
 export default async function RewardsPage() {
   const data = await getData();
-  const canManageRewards = data.role === "OWNER" || data.role === "ADMIN";
+  const canManageRewards = data.role === "ADMIN";
   const isEmployee = data.role === "EMPLOYEE";
 
   return (
