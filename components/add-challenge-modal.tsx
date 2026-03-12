@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CirclePlus, Trash2 } from "lucide-react";
@@ -23,6 +23,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 type ChallengeFieldValue = {
@@ -113,6 +120,9 @@ export function AddChallengeModal({ challenge, trigger }: AddChallengeModalProps
     resolver: zodResolver(createChallengeSchema),
     defaultValues: initialValues,
   });
+  const approvalRequiredValue = useWatch({ control: form.control, name: "approvalRequired" });
+  const isActiveValue = useWatch({ control: form.control, name: "isActive" });
+  const watchedFields = useWatch({ control: form.control, name: "fields" });
 
   const fields = useFieldArray({
     control: form.control,
@@ -211,16 +221,23 @@ export function AddChallengeModal({ challenge, trigger }: AddChallengeModalProps
           <div className="grid gap-4 md:grid-cols-2">
             <Field>
               <FieldLabel htmlFor="challenge-approval">Approval Flow</FieldLabel>
-              <select
-                id="challenge-approval"
-                {...form.register("approvalRequired", {
-                  setValueAs: (value) => value === "true" || value === true,
-                })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              <Select
+                value={approvalRequiredValue ? "true" : "false"}
+                onValueChange={(value) => {
+                  form.setValue("approvalRequired", value === "true", {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
               >
-                <option value="false">No approval required</option>
-                <option value="true">Manager/Admin approval required</option>
-              </select>
+                <SelectTrigger id="challenge-approval" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="false">No approval required</SelectItem>
+                  <SelectItem value="true">Manager/Admin approval required</SelectItem>
+                </SelectContent>
+              </Select>
               <FieldDescription>
                 Choose whether valid submissions credit points instantly or go through review first.
               </FieldDescription>
@@ -228,16 +245,23 @@ export function AddChallengeModal({ challenge, trigger }: AddChallengeModalProps
 
             <Field>
               <FieldLabel htmlFor="challenge-active">Status</FieldLabel>
-              <select
-                id="challenge-active"
-                {...form.register("isActive", {
-                  setValueAs: (value) => value === "true" || value === true,
-                })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              <Select
+                value={isActiveValue ? "true" : "false"}
+                onValueChange={(value) => {
+                  form.setValue("isActive", value === "true", {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
               >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
+                <SelectTrigger id="challenge-active" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
           </div>
 
@@ -317,31 +341,47 @@ export function AddChallengeModal({ challenge, trigger }: AddChallengeModalProps
                 <div className="grid gap-4 md:grid-cols-3">
                   <Field>
                     <FieldLabel htmlFor={`fields.${index}.type`}>Type</FieldLabel>
-                    <select
-                      id={`fields.${index}.type`}
-                      {...form.register(`fields.${index}.type`)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    <Select
+                      value={watchedFields?.[index]?.type ?? "TEXT"}
+                      onValueChange={(value) => {
+                        form.setValue(`fields.${index}.type`, value as ChallengeFieldValue["type"], {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
                     >
-                      {challengeFieldTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger id={`fields.${index}.type`} className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {challengeFieldTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
 
                   <Field>
                     <FieldLabel htmlFor={`fields.${index}.required`}>Required</FieldLabel>
-                    <select
-                      id={`fields.${index}.required`}
-                      {...form.register(`fields.${index}.required`, {
-                        setValueAs: (value) => value === "true" || value === true,
-                      })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    <Select
+                      value={watchedFields?.[index]?.required ? "true" : "false"}
+                      onValueChange={(value) => {
+                        form.setValue(`fields.${index}.required`, value === "true", {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
                     >
-                      <option value="true">Required</option>
-                      <option value="false">Optional</option>
-                    </select>
+                      <SelectTrigger id={`fields.${index}.required`} className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Required</SelectItem>
+                        <SelectItem value="false">Optional</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </Field>
 
                   <Field>

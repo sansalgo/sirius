@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useTransition, useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 
 import { editRewardSchema, type EditRewardInput } from "@/schemas/reward";
 import { updateReward } from "@/actions/reward";
-import { Reward } from "@/app/(dashboard)/rewards/columns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,9 +19,24 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
+export type EditableReward = {
+    id: string;
+    title: string;
+    description?: string | null;
+    pointsRequired: number;
+    isActive: boolean;
+};
 
 interface EditRewardModalProps {
-    reward: Reward;
+    reward: EditableReward;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
@@ -41,6 +55,7 @@ export function EditRewardModal({ reward, open, onOpenChange }: EditRewardModalP
             isActive: reward.isActive,
         },
     });
+    const isActiveValue = useWatch({ control: form.control, name: "isActive" });
 
     useEffect(() => {
         if (open) {
@@ -112,16 +127,23 @@ export function EditRewardModal({ reward, open, onOpenChange }: EditRewardModalP
 
                     <Field>
                         <FieldLabel htmlFor="edit-isActive">Status</FieldLabel>
-                        <select
-                            id="edit-isActive"
-                            {...form.register("isActive", {
-                                setValueAs: (v) => v === "true" || v === true
-                            })}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        <Select
+                            value={isActiveValue ? "true" : "false"}
+                            onValueChange={(value) => {
+                                form.setValue("isActive", value === "true", {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
                         >
-                            <option value="true">Active</option>
-                            <option value="false">Inactive</option>
-                        </select>
+                            <SelectTrigger id="edit-isActive" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="true">Active</SelectItem>
+                                <SelectItem value="false">Inactive</SelectItem>
+                            </SelectContent>
+                        </Select>
                         {form.formState.errors.isActive && (
                             <FieldDescription className="text-red-500">{form.formState.errors.isActive.message}</FieldDescription>
                         )}

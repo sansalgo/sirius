@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CirclePlus } from "lucide-react";
@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export function AddRewardModal() {
     const router = useRouter();
@@ -36,6 +43,7 @@ export function AddRewardModal() {
             isActive: true,
         },
     });
+    const isActiveValue = useWatch({ control: form.control, name: "isActive" });
 
     const onSubmit = (data: AddRewardInput) => {
         startTransition(async () => {
@@ -65,14 +73,14 @@ export function AddRewardModal() {
                     <span className="hidden lg:inline">Add Reward</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-106.25">
                 <DialogHeader>
                     <DialogTitle>Add Reward</DialogTitle>
                     <DialogDescription>
                         Create a new reward that employees can redeem points for.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     {form.formState.errors.root && (
                         <div className="text-red-500 text-sm font-medium">
                             {form.formState.errors.root.message}
@@ -110,16 +118,23 @@ export function AddRewardModal() {
 
                     <Field>
                         <FieldLabel htmlFor="isActive">Status</FieldLabel>
-                        <select
-                            id="isActive"
-                            {...form.register("isActive", {
-                                setValueAs: (v) => v === "true"
-                            })}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        <Select
+                            value={isActiveValue ? "true" : "false"}
+                            onValueChange={(value) => {
+                                form.setValue("isActive", value === "true", {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
                         >
-                            <option value="true">Active</option>
-                            <option value="false">Inactive</option>
-                        </select>
+                            <SelectTrigger id="isActive" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="true">Active</SelectItem>
+                                <SelectItem value="false">Inactive</SelectItem>
+                            </SelectContent>
+                        </Select>
                         {form.formState.errors.isActive && (
                             <FieldDescription className="text-red-500">{form.formState.errors.isActive.message}</FieldDescription>
                         )}

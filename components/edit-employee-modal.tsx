@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface EditEmployeeModalProps {
     employee: {
@@ -48,6 +55,7 @@ export function EditEmployeeModal({
             role: employee.role,
         },
     });
+    const roleValue = useWatch({ control: form.control, name: "role" });
 
     const onSubmit = (data: EditEmployeeInput) => {
         startTransition(async () => {
@@ -87,15 +95,24 @@ export function EditEmployeeModal({
 
                     <Field>
                         <FieldLabel htmlFor={`role-${employee.id}`}>Account Role</FieldLabel>
-                        <select
-                            id={`role-${employee.id}`}
-                            {...form.register("role")}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        <Select
+                            value={roleValue}
+                            onValueChange={(value) => {
+                                form.setValue("role", value as EditEmployeeInput["role"], {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
                         >
-                            <option value="EMPLOYEE">Employee</option>
-                            <option value="MANAGER">Manager</option>
-                            {canAssignAdminRole ? <option value="ADMIN">Admin</option> : null}
-                        </select>
+                            <SelectTrigger id={`role-${employee.id}`} className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                                <SelectItem value="MANAGER">Manager</SelectItem>
+                                {canAssignAdminRole ? <SelectItem value="ADMIN">Admin</SelectItem> : null}
+                            </SelectContent>
+                        </Select>
                         {form.formState.errors.role && (
                             <FieldDescription className="text-red-500">{form.formState.errors.role.message}</FieldDescription>
                         )}

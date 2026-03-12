@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   allocationFrequencySchema,
@@ -13,6 +13,13 @@ import { updateTenantSettings } from "@/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const frequencyOptions = allocationFrequencySchema.options;
 
@@ -28,6 +35,14 @@ export function SettingsForm({ canEdit, defaultValues }: SettingsFormProps) {
   const form = useForm<PointsSettingsInput>({
     resolver: zodResolver(pointsSettingsSchema),
     defaultValues,
+  });
+  const managerAllocationFrequency = useWatch({
+    control: form.control,
+    name: "managerAllocationFrequency",
+  });
+  const peerAllocationFrequency = useWatch({
+    control: form.control,
+    name: "peerAllocationFrequency",
   });
 
   const onSubmit = (data: PointsSettingsInput) => {
@@ -73,20 +88,30 @@ export function SettingsForm({ canEdit, defaultValues }: SettingsFormProps) {
 
         <Field>
           <FieldLabel htmlFor="managerAllocationFrequency">Manager Allocation Frequency</FieldLabel>
-          <select
-            id="managerAllocationFrequency"
+          <Select
             disabled={!canEdit || isPending}
-            {...form.register("managerAllocationFrequency")}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={managerAllocationFrequency}
+            onValueChange={(value) => {
+              form.setValue(
+                "managerAllocationFrequency",
+                value as PointsSettingsInput["managerAllocationFrequency"],
+                { shouldDirty: true, shouldValidate: true }
+              );
+            }}
           >
-            {frequencyOptions.map((frequency) => (
-              <option key={frequency} value={frequency}>
-                {frequency === "SEMI_ANNUALLY"
-                  ? "Semi Annually"
-                  : `${frequency.charAt(0)}${frequency.slice(1).toLowerCase()}`}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="managerAllocationFrequency" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {frequencyOptions.map((frequency) => (
+                <SelectItem key={frequency} value={frequency}>
+                  {frequency === "SEMI_ANNUALLY"
+                    ? "Semi Annually"
+                    : `${frequency.charAt(0)}${frequency.slice(1).toLowerCase()}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {form.formState.errors.managerAllocationFrequency ? (
             <FieldDescription className="text-red-500">
               {form.formState.errors.managerAllocationFrequency.message}
@@ -115,20 +140,30 @@ export function SettingsForm({ canEdit, defaultValues }: SettingsFormProps) {
 
         <Field>
           <FieldLabel htmlFor="peerAllocationFrequency">Peer Allocation Frequency</FieldLabel>
-          <select
-            id="peerAllocationFrequency"
+          <Select
             disabled={!canEdit || isPending}
-            {...form.register("peerAllocationFrequency")}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={peerAllocationFrequency}
+            onValueChange={(value) => {
+              form.setValue(
+                "peerAllocationFrequency",
+                value as PointsSettingsInput["peerAllocationFrequency"],
+                { shouldDirty: true, shouldValidate: true }
+              );
+            }}
           >
-            {frequencyOptions.map((frequency) => (
-              <option key={frequency} value={frequency}>
-                {frequency === "SEMI_ANNUALLY"
-                  ? "Semi Annually"
-                  : `${frequency.charAt(0)}${frequency.slice(1).toLowerCase()}`}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="peerAllocationFrequency" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {frequencyOptions.map((frequency) => (
+                <SelectItem key={frequency} value={frequency}>
+                  {frequency === "SEMI_ANNUALLY"
+                    ? "Semi Annually"
+                    : `${frequency.charAt(0)}${frequency.slice(1).toLowerCase()}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {form.formState.errors.peerAllocationFrequency ? (
             <FieldDescription className="text-red-500">
               {form.formState.errors.peerAllocationFrequency.message}

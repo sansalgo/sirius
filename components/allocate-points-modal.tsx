@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { SendIcon } from "lucide-react";
@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface AllocatePointsModalProps {
     users: { id: string; name: string; email: string }[];
@@ -38,6 +45,7 @@ export function AllocatePointsModal({ users }: AllocatePointsModalProps) {
             amount: 0,
         },
     });
+    const selectedUserId = useWatch({ control: form.control, name: "toUserId" });
 
     const onSubmit = (data: AllocatePointsInput) => {
         startTransition(async () => {
@@ -83,18 +91,26 @@ export function AllocatePointsModal({ users }: AllocatePointsModalProps) {
 
                     <Field>
                         <FieldLabel htmlFor="toUserId">Select Employee</FieldLabel>
-                        <select
-                            id="toUserId"
-                            {...form.register("toUserId")}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        <Select
+                            value={selectedUserId}
+                            onValueChange={(value) => {
+                                form.setValue("toUserId", value, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
                         >
-                            <option value="">-- Choose Employee --</option>
-                            {users.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                    {user.name} ({user.email})
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger id="toUserId" className="w-full">
+                                <SelectValue placeholder="Choose Employee" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {users.map((user) => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                        {user.name} ({user.email})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         {form.formState.errors.toUserId && (
                             <FieldDescription className="text-red-500">{form.formState.errors.toUserId.message}</FieldDescription>
                         )}

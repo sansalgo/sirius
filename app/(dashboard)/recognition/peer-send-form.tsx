@@ -2,13 +2,20 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sendPeerPointsSchema, type SendPeerPointsInput } from "@/schemas/peer";
 import { sendPeerPointsAction } from "@/actions/peer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type PeerSendFormProps = {
   users: { id: string; name: string; email: string }[];
@@ -26,6 +33,7 @@ export function PeerSendForm({ users }: PeerSendFormProps) {
       message: "",
     },
   });
+  const selectedUserId = useWatch({ control: form.control, name: "toUserId" });
 
   const onSubmit = (data: SendPeerPointsInput) => {
     startTransition(async () => {
@@ -49,19 +57,27 @@ export function PeerSendForm({ users }: PeerSendFormProps) {
 
       <Field>
         <FieldLabel htmlFor="toUserId">Select Employee</FieldLabel>
-        <select
-          id="toUserId"
+        <Select
           disabled={isPending}
-          {...form.register("toUserId")}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          value={selectedUserId}
+          onValueChange={(value) => {
+            form.setValue("toUserId", value, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          }}
         >
-          <option value="">-- Choose Employee --</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.name} ({user.email})
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id="toUserId" className="w-full">
+            <SelectValue placeholder="Choose Employee" />
+          </SelectTrigger>
+          <SelectContent>
+            {users.map((user) => (
+              <SelectItem key={user.id} value={user.id}>
+                {user.name} ({user.email})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {form.formState.errors.toUserId ? (
           <FieldDescription className="text-red-500">
             {form.formState.errors.toUserId.message}

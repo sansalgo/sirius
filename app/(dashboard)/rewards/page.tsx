@@ -1,4 +1,5 @@
 import { AddRewardModal } from "@/components/add-reward-modal";
+import { RewardRowActions } from "@/components/reward-row-actions";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -12,7 +13,6 @@ import { requirePageAccess } from "@/lib/authz";
 import { can } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { getUserBalance } from "@/actions/points";
-import { RedeemButton } from "./redeem-button";
 
 async function getData() {
   const { user } = await requirePageAccess("rewards.view");
@@ -23,6 +23,7 @@ async function getData() {
     select: {
       id: true,
       title: true,
+      description: true,
       pointsRequired: true,
       isActive: true,
     },
@@ -44,13 +45,7 @@ export default async function RewardsPage() {
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Rewards</h2>
-          <p className="text-muted-foreground">
-            Available Points: <span className="font-semibold">{data.availablePoints}</span>
-          </p>
-        </div>
+      <div className="flex items-center justify-end space-y-2">
         <div className="flex items-center space-x-2">
           {canManageRewards ? <AddRewardModal /> : null}
         </div>
@@ -78,14 +73,12 @@ export default async function RewardsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {canRedeemRewards ? (
-                      <RedeemButton
-                        rewardId={reward.id}
-                        disabled={!reward.isActive || data.availablePoints < reward.pointsRequired}
-                      />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    <RewardRowActions
+                      reward={reward}
+                      canManage={canManageRewards}
+                      canRedeem={canRedeemRewards}
+                      availablePoints={data.availablePoints}
+                    />
                   </TableCell>
                 </TableRow>
               ))

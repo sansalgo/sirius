@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Copy, Check, CirclePlus } from "lucide-react";
@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: boolean }) {
     const router = useRouter();
@@ -37,6 +44,7 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
             role: "EMPLOYEE",
         },
     });
+    const roleValue = useWatch({ control: form.control, name: "role" });
 
     const onSubmit = (data: AddEmployeeInput) => {
         startTransition(async () => {
@@ -109,15 +117,24 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
 
                             <Field>
                                 <FieldLabel htmlFor="role">Account Role</FieldLabel>
-                                <select
-                                    id="role"
-                                    {...form.register("role")}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                <Select
+                                    value={roleValue}
+                                    onValueChange={(value) => {
+                                        form.setValue("role", value as AddEmployeeInput["role"], {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                        });
+                                    }}
                                 >
-                                    <option value="EMPLOYEE">Employee</option>
-                                    <option value="MANAGER">Manager</option>
-                                    {canAssignAdminRole ? <option value="ADMIN">Admin</option> : null}
-                                </select>
+                                    <SelectTrigger id="role" className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                                        <SelectItem value="MANAGER">Manager</SelectItem>
+                                        {canAssignAdminRole ? <SelectItem value="ADMIN">Admin</SelectItem> : null}
+                                    </SelectContent>
+                                </Select>
                                 {form.formState.errors.role && (
                                     <FieldDescription className="text-red-500">{form.formState.errors.role.message}</FieldDescription>
                                 )}

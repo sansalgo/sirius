@@ -22,6 +22,13 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -56,20 +63,23 @@ export function DataTable<TData, TValue>({
         <div>
             {enableLedgerTypeFilter ? (
                 <div className="mb-3">
-                    <select
+                    <Select
                         value={(table.getColumn("type")?.getFilterValue() as string) ?? "ALL"}
-                        onChange={(event) => {
-                            const value = event.target.value
+                        onValueChange={(value) => {
                             table.getColumn("type")?.setFilterValue(value === "ALL" ? undefined : value)
                         }}
-                        className="flex h-10 w-[220px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
-                        <option value="ALL">All Types</option>
-                        <option value="ALLOCATION">ALLOCATION</option>
-                        <option value="PEER">PEER</option>
-                        <option value="REWARD">REWARD</option>
-                        <option value="ADJUSTMENT">ADJUSTMENT</option>
-                    </select>
+                        <SelectTrigger className="w-[220px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">All Types</SelectItem>
+                            <SelectItem value="ALLOCATION">ALLOCATION</SelectItem>
+                            <SelectItem value="PEER">PEER</SelectItem>
+                            <SelectItem value="REWARD">REWARD</SelectItem>
+                            <SelectItem value="ADJUSTMENT">ADJUSTMENT</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             ) : null}
             <div className="rounded-md border bg-background">
