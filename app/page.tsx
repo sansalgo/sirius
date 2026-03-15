@@ -109,16 +109,16 @@ const pricingTiers = [
     featured: false,
   },
   {
-    name: "Growth",
-    headline: "For companies scaling recognition across departments",
-    price: "$6",
-    cadence: "per additional user / month",
-    userRange: "First 10 users free, then pay as you grow",
+    name: "Pro",
+    headline: "For companies rolling out recognition without headcount limits",
+    price: "$2",
+    cadence: "per month",
+    userRange: "Unlimited users",
     features: [
       "Everything in Free",
-      "Usage-based scaling beyond 10 users",
-      "Predictable monthly seat pricing",
-      "Better fit for distributed teams and managers",
+      "Unlimited employee seats",
+      "Flat monthly pricing",
+      "Best fit for multi-team rollouts",
     ],
     cta: "Create workspace",
     href: "/signup",
@@ -312,11 +312,11 @@ export default async function Home() {
           <div className="max-w-3xl">
             <Badge variant="secondary">Pricing</Badge>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Start free. Pay only when your recognition program grows beyond 10 users.
+              Choose the plan that matches your team size and rollout stage.
             </h2>
             <p className="mt-4 text-lg leading-8 text-muted-foreground">
-              Sirius uses a simple SaaS pricing model so smaller teams can launch quickly and
-              expanding organizations can scale without renegotiating plans.
+              Sirius keeps pricing simple: start free for smaller teams, or move to a flat paid
+              tier when you need unlimited access across the company.
             </p>
           </div>
 
@@ -366,9 +366,10 @@ export default async function Home() {
               <div className="flex items-start gap-3">
                 <Users className="mt-0.5 size-5 text-primary" />
                 <div className="flex flex-col gap-1">
-                  <p className="font-medium">Pricing example</p>
+                  <p className="font-medium">Plan guidance</p>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    A 25-user company pays for 15 additional users: 15 × $6 = $90/month.
+                    Use Free for teams with up to 10 users. Upgrade to Pro for unlimited users at
+                    a flat $2/month.
                   </p>
                 </div>
               </div>
