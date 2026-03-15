@@ -66,8 +66,13 @@ export async function registerTenantAndUser(data: z.infer<typeof signupSchema>) 
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Signup error:", error);
-    return { error: error?.message || "An unexpected error occurred during signup" };
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during signup",
+    };
   }
 }

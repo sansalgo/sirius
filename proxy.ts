@@ -25,9 +25,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // 2. Redirect authenticated users away from auth pages to their dashboard/home
-  if (isAuthenticated && ["/login", "/signup", "/forgot-password"].includes(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url)); // You can change this to wherever authed users should go
+  // 2. Redirect authenticated users away from public entry pages
+  if (isAuthenticated && ["/", "/login", "/signup", "/forgot-password"].includes(pathname)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
