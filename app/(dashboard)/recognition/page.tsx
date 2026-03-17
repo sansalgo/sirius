@@ -31,7 +31,11 @@ async function getData() {
         type: "PEER",
         OR: [{ fromUserId: user.id }, { toUserId: user.id }],
       },
-      include: {
+      select: {
+        id: true,
+        fromUserId: true,
+        amount: true,
+        createdAt: true,
         fromUser: { select: { name: true } },
         toUser: { select: { name: true } },
       },
@@ -41,6 +45,7 @@ async function getData() {
   ]);
 
   return {
+    currentUserId: user.id,
     employees,
     transfers,
     status: statusResult.success
@@ -60,10 +65,7 @@ export default async function RecognitionPage() {
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6">
-      <div className="space-y-1">
-        <h2 className="text-3xl font-bold tracking-tight">Recognition</h2>
-        <p className="text-muted-foreground">Send peer-to-peer points within your current budget.</p>
-      </div>
+
 
       <div className="rounded-md border bg-background p-6">
         <h3 className="text-lg font-semibold">Peer Budget</h3>
@@ -75,7 +77,9 @@ export default async function RecognitionPage() {
         </p>
       </div>
 
-      <PeerSendForm users={data.employees} />
+      <div className="flex items-center justify-end">
+        <PeerSendForm users={data.employees} />
+      </div>
 
       <div className="rounded-md border bg-background">
         <Table>
@@ -93,7 +97,16 @@ export default async function RecognitionPage() {
                 <TableRow key={transfer.id}>
                   <TableCell>{transfer.fromUser?.name ?? "-"}</TableCell>
                   <TableCell>{transfer.toUser?.name ?? "-"}</TableCell>
-                  <TableCell className="font-medium text-green-600">+{transfer.amount}</TableCell>
+                  <TableCell
+                    className={
+                      transfer.fromUserId === data.currentUserId
+                        ? "font-medium text-red-600"
+                        : "font-medium text-green-600"
+                    }
+                  >
+                    {transfer.fromUserId === data.currentUserId ? "-" : "+"}
+                    {transfer.amount}
+                  </TableCell>
                   <TableCell>{new Date(transfer.createdAt).toLocaleString()}</TableCell>
                 </TableRow>
               ))

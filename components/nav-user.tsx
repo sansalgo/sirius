@@ -21,8 +21,15 @@ import { useRouter } from "next/navigation"
 import { useTransition } from "react"
 
 import { authClient } from "@/lib/auth-client"
+import type { AppRole } from "@/lib/rbac"
 
-export function NavUser({ availablePoints }: { availablePoints: number }) {
+export function NavUser({
+  availablePoints,
+  role,
+}: {
+  availablePoints: number
+  role: AppRole
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -41,10 +48,12 @@ export function NavUser({ availablePoints }: { availablePoints: number }) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1 rounded-md border px-2 py-1 text-sm">
-        <Wallet className="h-4 w-4" />
-        <span className="font-medium">{availablePoints}</span>
-      </div>
+      {role === "EMPLOYEE" ? (
+        <div className="flex items-center gap-1 rounded-md border px-2 py-1 text-sm">
+          <Wallet className="h-4 w-4" />
+          <span className="font-medium">{availablePoints}</span>
+        </div>
+      ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">

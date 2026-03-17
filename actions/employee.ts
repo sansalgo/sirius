@@ -23,7 +23,7 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
     return { error: result.error.issues[0].message };
   }
 
-  const { name, email, role } = result.data;
+  const { name, email, role, status } = result.data;
 
   const tempPassword = generateTempPassword();
 
@@ -70,7 +70,7 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
         data: {
           tenantId: currentUser.tenantId,
           role: role as "ADMIN" | "MANAGER" | "EMPLOYEE",
-          status: "ACTIVE",
+          status,
         },
       });
 
@@ -101,7 +101,7 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
     return { error: result.error.issues[0].message };
   }
 
-  const { id, name, role } = result.data;
+  const { id, name, role, status } = result.data;
 
   try {
     const { user: currentUser } = await getActionAuthContext("employees.manage");
@@ -119,6 +119,14 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
       if (role === "ADMIN" || targetUser.role === "ADMIN") {
         return { error: "Managers cannot create or edit admin accounts." };
       }
+
+      if (status === "INACTIVE") {
+        return { error: "Managers cannot deactivate employees." };
+      }
+    }
+
+    if (currentUser.id === id && status === "INACTIVE") {
+      return { error: "You cannot deactivate your own account." };
     }
 
     if (currentUser.id === id && targetUser.role === "ADMIN" && role !== "ADMIN") {
@@ -134,12 +142,27 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
       }
     }
 
+    if (targetUser.role === "ADMIN" && status === "INACTIVE") {
+      const activeAdminCount = await prisma.user.count({
+        where: {
+          tenantId: currentUser.tenantId,
+          role: "ADMIN",
+          status: "ACTIVE",
+        },
+      });
+
+      if (activeAdminCount <= 1) {
+        return { error: "You cannot deactivate the last active admin in the tenant." };
+      }
+    }
+
     // 3. Update the user details
     await prisma.user.update({
       where: { id },
       data: {
         name,
         role: role as "ADMIN" | "MANAGER" | "EMPLOYEE",
+        status,
       },
     });
 

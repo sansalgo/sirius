@@ -3,6 +3,7 @@ import { DashboardBreadcrumb } from "@/components/dashboard-breadcrumb"
 import { NavUser } from "@/components/nav-user"
 import { requirePageAccess } from "@/lib/authz"
 import { prisma } from "@/lib/prisma"
+import { can } from "@/lib/rbac"
 import { Separator } from "@/components/ui/separator"
 import {
     SidebarInset,
@@ -14,15 +15,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const { user } = await requirePageAccess("dashboard.view")
 
     let availablePoints = 0
-    const wallet = await prisma.wallet.findUnique({
-        where: {
-            tenantId_userId: {
-                tenantId: user.tenantId,
-                userId: user.id,
+    const wallet = can(user.role, "peer.send")
+        ? await prisma.wallet.findUnique({
+            where: {
+                tenantId_userId: {
+                    tenantId: user.tenantId,
+                    userId: user.id,
+                },
             },
-        },
-        select: { totalPoints: true, reservedPoints: true },
-    })
+            select: { totalPoints: true, reservedPoints: true },
+        })
+        : null
 
     if (wallet) {
         availablePoints = (wallet.totalPoints ?? 0) - (wallet.reservedPoints ?? 0)
@@ -44,7 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
                         </div>
                         <div className="px-4">
-                            <NavUser availablePoints={availablePoints} />
+                            <NavUser availablePoints={availablePoints} role={user.role} />
                         </div>
                     </div>
                 </header>

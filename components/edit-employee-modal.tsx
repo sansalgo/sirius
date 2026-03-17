@@ -32,6 +32,7 @@ interface EditEmployeeModalProps {
         id: string;
         name: string;
         role: "ADMIN" | "MANAGER" | "EMPLOYEE";
+        status: "ACTIVE" | "INACTIVE";
     };
     canAssignAdminRole: boolean;
     open: boolean;
@@ -53,9 +54,11 @@ export function EditEmployeeModal({
             id: employee.id,
             name: employee.name,
             role: employee.role,
+            status: employee.status,
         },
     });
     const roleValue = useWatch({ control: form.control, name: "role" });
+    const statusValue = useWatch({ control: form.control, name: "status" });
 
     const onSubmit = (data: EditEmployeeInput) => {
         startTransition(async () => {
@@ -117,6 +120,32 @@ export function EditEmployeeModal({
                             <FieldDescription className="text-red-500">{form.formState.errors.role.message}</FieldDescription>
                         )}
                     </Field>
+
+                    {canAssignAdminRole ? (
+                        <Field>
+                            <FieldLabel htmlFor={`status-${employee.id}`}>Status</FieldLabel>
+                            <Select
+                                value={statusValue}
+                                onValueChange={(value) => {
+                                    form.setValue("status", value as EditEmployeeInput["status"], {
+                                        shouldDirty: true,
+                                        shouldValidate: true,
+                                    });
+                                }}
+                            >
+                                <SelectTrigger id={`status-${employee.id}`} className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ACTIVE">Active</SelectItem>
+                                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {form.formState.errors.status && (
+                                <FieldDescription className="text-red-500">{form.formState.errors.status.message}</FieldDescription>
+                            )}
+                        </Field>
+                    ) : null}
 
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>

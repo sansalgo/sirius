@@ -55,20 +55,18 @@ async function getData() {
 export default async function PointsPage() {
     const data = await getData()
     const tableColumns = data.isElevatedRole ? columnsWithRecipient : columns
+    const toolbarAction = can(data.role, "points.allocate")
+        ? <AllocatePointsModal users={data.activeUsers} />
+        : null
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">
-                    Points History <span className="ml-2 text-xl font-normal text-muted-foreground">(Available Balance: {data.availablePoints})</span>
-                </h2>
-                <div className="flex items-center space-x-2">
-                    {can(data.role, "points.allocate") && (
-                        <AllocatePointsModal users={data.activeUsers} />
-                    )}
-                </div>
-            </div>
-            <DataTable columns={tableColumns} data={data.entries} enableLedgerTypeFilter />
+            <DataTable
+                columns={tableColumns}
+                data={data.entries}
+                enableLedgerTypeFilter
+                toolbarAction={toolbarAction}
+            />
         </div>
     )
 }

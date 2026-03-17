@@ -34,12 +34,14 @@ interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     enableLedgerTypeFilter?: boolean
+    toolbarAction?: React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
     enableLedgerTypeFilter = false,
+    toolbarAction,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -61,25 +63,33 @@ export function DataTable<TData, TValue>({
 
     return (
         <div>
-            {enableLedgerTypeFilter ? (
-                <div className="mb-3">
-                    <Select
-                        value={(table.getColumn("type")?.getFilterValue() as string) ?? "ALL"}
-                        onValueChange={(value) => {
-                            table.getColumn("type")?.setFilterValue(value === "ALL" ? undefined : value)
-                        }}
-                    >
-                        <SelectTrigger className="w-[220px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="ALL">All Types</SelectItem>
-                            <SelectItem value="ALLOCATION">ALLOCATION</SelectItem>
-                            <SelectItem value="PEER">PEER</SelectItem>
-                            <SelectItem value="REWARD">REWARD</SelectItem>
-                            <SelectItem value="ADJUSTMENT">ADJUSTMENT</SelectItem>
-                        </SelectContent>
-                    </Select>
+            {enableLedgerTypeFilter || toolbarAction ? (
+                <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                        {enableLedgerTypeFilter ? (
+                            <Select
+                                value={(table.getColumn("type")?.getFilterValue() as string) ?? "ALL"}
+                                onValueChange={(value) => {
+                                    table.getColumn("type")?.setFilterValue(value === "ALL" ? undefined : value)
+                                }}
+                            >
+                                <SelectTrigger className="w-[220px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">All Types</SelectItem>
+                                    <SelectItem value="ALLOCATION">Allocation</SelectItem>
+                                    <SelectItem value="PEER">Peer Recognition</SelectItem>
+                                    <SelectItem value="REWARD">Reward Redemption</SelectItem>
+                                    <SelectItem value="ADJUSTMENT">Admin Adjustment</SelectItem>
+                                    <SelectItem value="CHALLENGE">Challenge</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        ) : null}
+                    </div>
+                    <div className="flex items-center justify-end">
+                        {toolbarAction}
+                    </div>
                 </div>
             ) : null}
             <div className="rounded-md border bg-background">

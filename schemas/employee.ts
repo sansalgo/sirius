@@ -4,6 +4,7 @@ export const addEmployeeSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   role: z.enum(["ADMIN", "MANAGER", "EMPLOYEE"]),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
 });
 
 export type AddEmployeeInput = z.infer<typeof addEmployeeSchema>;
@@ -12,6 +13,7 @@ export const editEmployeeSchema = z.object({
   id: z.string(),
   name: z.string().min(2, "Name must be at least 2 characters"),
   role: z.enum(["ADMIN", "MANAGER", "EMPLOYEE"]),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
 });
 
 export type EditEmployeeInput = z.infer<typeof editEmployeeSchema>;

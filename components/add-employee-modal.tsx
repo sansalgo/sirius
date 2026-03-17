@@ -42,9 +42,11 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
             name: "",
             email: "",
             role: "EMPLOYEE",
+            status: "ACTIVE",
         },
     });
     const roleValue = useWatch({ control: form.control, name: "role" });
+    const statusValue = useWatch({ control: form.control, name: "status" });
 
     const onSubmit = (data: AddEmployeeInput) => {
         startTransition(async () => {
@@ -139,6 +141,32 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
                                     <FieldDescription className="text-red-500">{form.formState.errors.role.message}</FieldDescription>
                                 )}
                             </Field>
+
+                            {canAssignAdminRole ? (
+                                <Field>
+                                    <FieldLabel htmlFor="status">Status</FieldLabel>
+                                    <Select
+                                        value={statusValue}
+                                        onValueChange={(value) => {
+                                            form.setValue("status", value as AddEmployeeInput["status"], {
+                                                shouldDirty: true,
+                                                shouldValidate: true,
+                                            });
+                                        }}
+                                    >
+                                        <SelectTrigger id="status" className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="ACTIVE">Active</SelectItem>
+                                            <SelectItem value="INACTIVE">Inactive</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {form.formState.errors.status && (
+                                        <FieldDescription className="text-red-500">{form.formState.errors.status.message}</FieldDescription>
+                                    )}
+                                </Field>
+                            ) : null}
 
                             <DialogFooter>
                                 <Button type="submit" disabled={isPending}>

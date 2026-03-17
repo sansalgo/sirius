@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { SendIcon } from "lucide-react";
+import { CirclePlus } from "lucide-react";
 
 import { allocatePointsSchema, type AllocatePointsInput } from "@/schemas/points";
 import { allocatePoints } from "@/actions/points";
@@ -70,9 +70,9 @@ export function AllocatePointsModal({ users }: AllocatePointsModalProps) {
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogTrigger asChild>
-                <Button variant="default" size="sm">
-                    <SendIcon className="mr-2 h-4 w-4" />
-                    Allocate Points
+                <Button variant="outline" size="sm">
+                    <CirclePlus />
+                    <span className="hidden lg:inline">Allocate Points</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

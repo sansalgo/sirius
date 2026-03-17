@@ -19,6 +19,7 @@ const LEDGER_TYPE_LABELS: Record<string, string> = {
     PEER: "Peer Recognition",
     REWARD: "Reward Redemption",
     ADJUSTMENT: "Admin Adjustment",
+    CHALLENGE: "Challenge",
 }
 
 const baseColumns: ColumnDef<PointLedgerEntry>[] = [
@@ -27,7 +28,13 @@ const baseColumns: ColumnDef<PointLedgerEntry>[] = [
         header: "Type",
         cell: ({ row }) => {
             const type = String(row.getValue("type"))
-            return <div className="font-medium">{LEDGER_TYPE_LABELS[type] ?? type}</div>
+            const fallbackLabel = type
+                .toLowerCase()
+                .split("_")
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(" ")
+
+            return <div className="font-medium">{LEDGER_TYPE_LABELS[type] ?? fallbackLabel}</div>
         },
     },
     {
