@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
 type ChallengeField = {
   key: string;
@@ -119,32 +120,28 @@ export function ChallengesTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Challenges</h2>
-          <p className="text-muted-foreground">
-            {isEmployeeView
-              ? "Complete challenges and track the ones you have already finished."
-              : "Manage challenge definitions and review incoming submissions."}
-          </p>
-        </div>
+      <div className="flex items-center justify-end gap-4">
         {canManage ? <AddChallengeModal /> : null}
       </div>
 
       {isEmployeeView ? (
         <div className="flex items-center gap-2">
-          <Button
-            variant={tab === "available" ? "default" : "outline"}
-            onClick={() => setTab("available")}
-          >
-            Available
-          </Button>
-          <Button
-            variant={tab === "completed" ? "default" : "outline"}
-            onClick={() => setTab("completed")}
-          >
-            Completed
-          </Button>
+          <Tabs defaultValue={tab}>
+            <TabsList>
+              <TabsTrigger
+                onClick={() => setTab("available")}
+                value="available"
+              >
+                Available
+              </TabsTrigger>
+              <TabsTrigger
+                onClick={() => setTab("completed")}
+                value="completed"
+              >
+                Completed
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       ) : null}
 
@@ -163,12 +160,14 @@ export function ChallengesTable({
           <TableBody>
             {visibleChallenges.length ? (
               visibleChallenges.map((challenge) => {
-                const availability = getChallengeAvailability(challenge);
+                const availability = getChallengeAvailability(challenge)
                 const hasSubmitted =
                   challenge.latestSubmission?.status === "PENDING" ||
-                  challenge.latestSubmission?.status === "APPROVED";
+                  challenge.latestSubmission?.status === "APPROVED"
                 const disabled =
-                  currentUserStatus !== "ACTIVE" || availability.disabled || hasSubmitted;
+                  currentUserStatus !== "ACTIVE" ||
+                  availability.disabled ||
+                  hasSubmitted
 
                 return (
                   <TableRow key={challenge.id}>
@@ -178,8 +177,11 @@ export function ChallengesTable({
                         {challenge.description || "No description provided."}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <Badge variant="outline">{challenge.fields.length} fields</Badge>
-                        {challenge.pendingSubmissions.length > 0 && !isEmployeeView ? (
+                        <Badge variant="outline">
+                          {challenge.fields.length} fields
+                        </Badge>
+                        {challenge.pendingSubmissions.length > 0 &&
+                        !isEmployeeView ? (
                           <Badge variant="secondary">
                             {challenge.pendingSubmissions.length} pending
                           </Badge>
@@ -187,8 +189,14 @@ export function ChallengesTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={challenge.approvalRequired ? "secondary" : "default"}>
-                        {challenge.approvalRequired ? "Approval required" : "Auto award"}
+                      <Badge
+                        variant={
+                          challenge.approvalRequired ? "secondary" : "default"
+                        }
+                      >
+                        {challenge.approvalRequired
+                          ? "Approval required"
+                          : "Auto award"}
                       </Badge>
                     </TableCell>
                     <TableCell>{challenge.pointsAward}</TableCell>
@@ -197,7 +205,11 @@ export function ChallengesTable({
                       {isEmployeeView ? (
                         challenge.latestSubmission ? (
                           <>
-                            <Badge variant={getStatusVariant(challenge.latestSubmission.status)}>
+                            <Badge
+                              variant={getStatusVariant(
+                                challenge.latestSubmission.status,
+                              )}
+                            >
                               {challenge.latestSubmission.status}
                             </Badge>
                             {challenge.latestSubmission.status === "REJECTED" &&
@@ -208,12 +220,18 @@ export function ChallengesTable({
                             ) : null}
                           </>
                         ) : (
-                          <Badge variant={availability.disabled ? "outline" : "default"}>
+                          <Badge
+                            variant={
+                              availability.disabled ? "outline" : "default"
+                            }
+                          >
                             {availability.label}
                           </Badge>
                         )
                       ) : (
-                        <Badge variant={challenge.isActive ? "default" : "outline"}>
+                        <Badge
+                          variant={challenge.isActive ? "default" : "outline"}
+                        >
                           {challenge.isActive ? "ACTIVE" : "INACTIVE"}
                         </Badge>
                       )}
@@ -231,9 +249,11 @@ export function ChallengesTable({
                           buttonLabel={
                             challenge.latestSubmission?.status === "PENDING"
                               ? "Pending"
-                              : challenge.latestSubmission?.status === "APPROVED"
+                              : challenge.latestSubmission?.status ===
+                                  "APPROVED"
                                 ? "Completed"
-                                : challenge.latestSubmission?.status === "REJECTED"
+                                : challenge.latestSubmission?.status ===
+                                    "REJECTED"
                                   ? "Resubmit"
                                   : "Complete"
                           }
@@ -247,7 +267,7 @@ export function ChallengesTable({
                       )}
                     </TableCell>
                   </TableRow>
-                );
+                )
               })
             ) : (
               <TableRow>
@@ -262,5 +282,5 @@ export function ChallengesTable({
         </Table>
       </div>
     </div>
-  );
+  )
 }
