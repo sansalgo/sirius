@@ -5,6 +5,8 @@ import { headers } from "next/headers";
 import { signupSchema } from "@/schemas/auth";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { createCredentialUser } from "@/lib/user-provisioning";
+import { getPlanSeatLimit } from "@/lib/subscriptions";
 
 export async function registerTenantAndUser(data: z.infer<typeof signupSchema>) {
   const result = signupSchema.safeParse(data);
@@ -15,28 +17,10 @@ export async function registerTenantAndUser(data: z.infer<typeof signupSchema>) 
   const { companyName, name, email, password } = result.data;
 
   try {
-    // 2. Call better-auth email/password signup
     const reqHeaders = await headers();
-    
-    // Using the auth.api endpoints directly internally handles hashing and user creation
-    const signUpResponse = await auth.api.signUpEmail({
-      headers: reqHeaders,
-      body: {
-        email,
-        password,
-        name,
-      },
-    });
+    const freePlanSeatLimit = getPlanSeatLimit("FREE");
 
-    if (!signUpResponse || !signUpResponse.user) {
-      return { error: "Failed to create user account" };
-    }
-
-    const userId = signUpResponse.user.id;
-
-    // 3. Wrap tenant creation + role update + wallet creation in a transaction
     await prisma.$transaction(async (tx) => {
-      // Create Tenant
       const tenant = await tx.tenant.create({
         data: {
           name: companyName,
@@ -44,25 +28,40 @@ export async function registerTenantAndUser(data: z.infer<typeof signupSchema>) 
         },
       });
 
-      // Update created user with strictly assigned server-side role
-      await tx.user.update({
-        where: { id: userId },
+      const owner = await createCredentialUser({
+        db: tx,
+        email,
+        name,
+        password,
+        tenantId: tenant.id,
+        role: "ADMIN",
+        status: "ACTIVE",
+        emailVerified: true,
+      });
+
+      await tx.tenant.update({
+        where: { id: tenant.id },
         data: {
-          tenantId: tenant.id,
-          role: "ADMIN",
-          status: "ACTIVE",
+          ownerUserId: owner.id,
         },
       });
 
-      // Create Wallet for user
-      await tx.wallet.create({
+      await tx.tenantSubscription.create({
         data: {
           tenantId: tenant.id,
-          userId: userId,
-          totalPoints: 0,
-          reservedPoints: 0,
+          plan: "FREE",
+          status: "ACTIVE",
+          seatLimit: freePlanSeatLimit,
         },
       });
+    });
+
+    await auth.api.signInEmail({
+      headers: reqHeaders,
+      body: {
+        email,
+        password,
+      },
     });
 
     return { success: true };

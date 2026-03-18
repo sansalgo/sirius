@@ -204,6 +204,25 @@ async function main() {
     passwordHash,
   });
 
+  const subscription = await prisma.tenantSubscription.create({
+    data: {
+      tenantId: tenant.id,
+      plan: "PRO",
+      status: "ACTIVE",
+      seatLimit: null,
+      billingProvider: "manual",
+      currentPeriodStart: daysAgo(15),
+      currentPeriodEnd: daysAgo(-15),
+    },
+  });
+
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      ownerUserId: admin.id,
+    },
+  });
+
   const managers = await Promise.all([
     createCredentialUser({
       tenantId: tenant.id,
@@ -682,6 +701,43 @@ async function main() {
         usedAmount: 420,
         periodStart: daysAgo(10),
         periodEnd: daysAgo(-20),
+      },
+    ],
+  });
+
+  await prisma.billingRecord.createMany({
+    data: [
+      {
+        tenantId: tenant.id,
+        subscriptionId: subscription.id,
+        billingProvider: "manual",
+        providerInvoiceId: "INV-2026-02",
+        description: "Sirius Pro monthly subscription",
+        amountInPaise: 499900,
+        currency: "INR",
+        billingInterval: "MONTHLY",
+        status: "PAID",
+        periodStart: daysAgo(45),
+        periodEnd: daysAgo(15),
+        issuedAt: daysAgo(45),
+        dueAt: daysAgo(40),
+        paidAt: daysAgo(40),
+      },
+      {
+        tenantId: tenant.id,
+        subscriptionId: subscription.id,
+        billingProvider: "manual",
+        providerInvoiceId: "INV-2026-03",
+        description: "Sirius Pro monthly subscription",
+        amountInPaise: 499900,
+        currency: "INR",
+        billingInterval: "MONTHLY",
+        status: "PAID",
+        periodStart: daysAgo(15),
+        periodEnd: daysAgo(-15),
+        issuedAt: daysAgo(15),
+        dueAt: daysAgo(10),
+        paidAt: daysAgo(9),
       },
     ],
   });

@@ -1,11 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
 import { addEmployeeSchema, editEmployeeSchema } from "@/schemas/employee";
 import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { createCredentialUser } from "@/lib/user-provisioning";
+import { getTenantSeatSummary } from "@/lib/subscriptions";
 
 // Temporary password generator
 function generateTempPassword(length = 12) {
@@ -29,59 +29,30 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
 
   try {
     const { user: currentUser } = await getActionAuthContext("employees.manage");
+    const seatSummary = await getTenantSeatSummary(currentUser.tenantId);
 
     if (currentUser.role === "MANAGER" && role === "ADMIN") {
       return { error: "Managers cannot assign the ADMIN role." };
     }
 
-    // 2. Call better-auth email/password signup
-    // We create the user via auth API so it hashes the password correctly
-    const signUpResponse = await auth.api.signUpEmail({
-      headers: await headers(), // Passing current headers preserves the session? Wait!
-      // better-auth signUpEmail creates a new session and logs them in. We don't want the admin logged out.
-      // So we use auth.api.signUpEmail without attaching headers that might switch sessions, 
-      // or we directly insert and use better-auth underlying password hashing.
-      // Better yet, use auth server context or create user directly if available.
-      body: {
-        email,
-        password: tempPassword,
-        name,
-      },
-      // Some auth libs have server-side user creation without session hijacking.
-      // In better-auth, signUpEmail automatically signs in. 
-      // To bypass this safely, we might just create the user in db and let better-auth handle it, 
-      // OR pass special options if available.
-    });
-    // Note: Due to standard better auth `signUpEmail` logging the user in, 
-    // it's often better in a B2B SaaS to create users directly and hash manually via utility, 
-    // but we will keep `signUpEmail` here and warn about session if needed, 
-    // or we'll assume better-auth admin creation tools are used later.
-
-    if (!signUpResponse || !signUpResponse.user) {
-      return { error: "Failed to create user account" };
+    if (seatSummary.isAtLimit) {
+      return {
+        error:
+          seatSummary.plan === "FREE"
+            ? "Your Free plan supports up to 10 team seats excluding the owner. Upgrade to Pro to add more members."
+            : "Your current plan has no remaining seats.",
+      };
     }
 
-    const userId = signUpResponse.user.id;
-
-    // 3. Attach tenant and set specific role
     await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          tenantId: currentUser.tenantId,
-          role: role as "ADMIN" | "MANAGER" | "EMPLOYEE",
-          status,
-        },
-      });
-
-      // Create Wallet for user automatically
-      await tx.wallet.create({
-        data: {
-          tenantId: currentUser.tenantId as string,
-          userId: userId,
-          totalPoints: 0,
-          reservedPoints: 0,
-        },
+      await createCredentialUser({
+        db: tx,
+        email,
+        name,
+        password: tempPassword,
+        tenantId: currentUser.tenantId,
+        role: role as "ADMIN" | "MANAGER" | "EMPLOYEE",
+        status,
       });
     });
 

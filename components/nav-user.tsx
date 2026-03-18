@@ -65,11 +65,21 @@ export function NavUser({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuGroup>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                router.push("/account")
+              }}
+            >
               <BadgeCheckIcon />
               Account
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                router.push("/billing")
+              }}
+            >
               <CreditCardIcon />
               Billing
             </DropdownMenuItem>
