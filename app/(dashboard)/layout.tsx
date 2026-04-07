@@ -10,26 +10,50 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { getSubscriptionBannerState } from "@/lib/subscriptions"
+import { getOnboardingState } from "@/actions/onboarding"
+import { SubscriptionBanner } from "@/components/subscription-banner"
+import { EmailVerificationBanner } from "@/components/email-verification-banner"
+import { OnboardingChecklistWrapper } from "@/components/onboarding-checklist-wrapper"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user } = await requirePageAccess("dashboard.view")
 
-    let availablePoints = 0
-    const wallet = can(user.role, "peer.send")
-        ? await prisma.wallet.findUnique({
-            where: {
-                tenantId_userId: {
-                    tenantId: user.tenantId,
-                    userId: user.id,
+    const [wallet, bannerState, onboarding, dbUser] = await Promise.all([
+        can(user.role, "peer.send")
+            ? prisma.wallet.findUnique({
+                where: {
+                    tenantId_userId: {
+                        tenantId: user.tenantId,
+                        userId: user.id,
+                    },
                 },
-            },
-            select: { totalPoints: true, reservedPoints: true },
-        })
-        : null
+                select: { totalPoints: true, reservedPoints: true },
+            })
+            : Promise.resolve(null),
+        // Only admins see subscription banners
+        can(user.role, "settings.view")
+            ? getSubscriptionBannerState(user.tenantId)
+            : Promise.resolve({ type: "none" as const }),
+        // Onboarding only shown to admins
+        can(user.role, "settings.view")
+            ? getOnboardingState(user.tenantId)
+            : Promise.resolve(null),
+        prisma.user.findUnique({
+            where: { id: user.id },
+            select: { emailVerified: true },
+        }),
+    ])
 
-    if (wallet) {
-        availablePoints = (wallet.totalPoints ?? 0) - (wallet.reservedPoints ?? 0)
-    }
+    const availablePoints = wallet
+        ? (wallet.totalPoints ?? 0) - (wallet.reservedPoints ?? 0)
+        : 0
+
+    const isEmailUnverified = dbUser?.emailVerified === false
+    const showOnboarding =
+        onboarding !== null &&
+        !onboarding.dismissed &&
+        can(user.role, "settings.view")
 
     return (
         <SidebarProvider>
@@ -44,14 +68,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
                                 className="mr-2 data-[orientation=vertical]:h-4"
                             />
                             <DashboardBreadcrumb />
-
                         </div>
                         <div className="px-4">
                             <NavUser availablePoints={availablePoints} role={user.role} />
                         </div>
                     </div>
                 </header>
-                <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+
+                <div className="flex flex-1 flex-col gap-4 p-4 pt-4">
+                    {/* System banners */}
+                    {bannerState.type !== "none" && (
+                        <SubscriptionBanner state={bannerState} />
+                    )}
+                    {isEmailUnverified && (
+                        <EmailVerificationBanner email={user.email} />
+                    )}
+
+                    {/* Onboarding checklist (admin only, dismissible) */}
+                    {showOnboarding && (
+                        <OnboardingChecklistWrapper steps={onboarding.steps} />
+                    )}
+
                     {children}
                 </div>
             </SidebarInset>

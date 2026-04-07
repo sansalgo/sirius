@@ -214,6 +214,57 @@ export async function getTenantSeatSummary(tenantId: string) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Subscription banner state — used by the dashboard layout
+// ---------------------------------------------------------------------------
+
+export type SubscriptionBannerState =
+  | { type: "none" }
+  | { type: "grace_period"; gracePeriodEndsAt: Date; daysLeft: number }
+  | { type: "expired_over_quota"; usedSeats: number; seatLimit: number; overBy: number }
+  | { type: "expired" };
+
+export async function getSubscriptionBannerState(tenantId: string): Promise<SubscriptionBannerState> {
+  const [{ plan, subscription }, { usedSeats }] = await Promise.all([
+    getEffectiveTenantPlan(tenantId),
+    getTenantSeatUsage(tenantId),
+  ]);
+
+  // Active PRO subscription — nothing to show
+  if (subscription?.status === "ACTIVE" && plan === "PRO") {
+    return { type: "none" };
+  }
+
+  // Still within the grace period after a payment failure
+  if (subscription?.status === "PAST_DUE" && subscription.gracePeriodEndsAt) {
+    const gracePeriodEndsAt = subscription.gracePeriodEndsAt;
+    if (gracePeriodEndsAt > new Date()) {
+      const daysLeft = Math.max(
+        1,
+        Math.ceil((gracePeriodEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      );
+      return { type: "grace_period", gracePeriodEndsAt, daysLeft };
+    }
+  }
+
+  // Subscription has expired — check if they're over the free quota
+  if (plan === "FREE") {
+    const freeSeatLimit = getPlanSeatLimit("FREE") ?? 10;
+    if (usedSeats > freeSeatLimit) {
+      return {
+        type: "expired_over_quota",
+        usedSeats,
+        seatLimit: freeSeatLimit,
+        overBy: usedSeats - freeSeatLimit,
+      };
+    }
+  }
+
+  return { type: "none" };
+}
+
+// ---------------------------------------------------------------------------
+
 export function formatCurrencyFromPaise(amountInPaise: number, currency = "INR") {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
