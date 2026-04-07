@@ -1,4 +1,10 @@
 import "dotenv/config";
+
+if (process.env.NODE_ENV === "production") {
+  console.error("Seed must not run in production. Aborting.");
+  process.exit(1);
+}
+
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
