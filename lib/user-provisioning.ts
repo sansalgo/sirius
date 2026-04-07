@@ -10,7 +10,8 @@ type UserStatus = "ACTIVE" | "INACTIVE";
 export async function createCredentialUser(args: {
   email: string;
   name: string;
-  password: string;
+  /** Omit when creating an invited user — password will be set on invitation acceptance. */
+  password?: string;
   tenantId: string;
   role: UserRole;
   status: UserStatus;
@@ -19,7 +20,6 @@ export async function createCredentialUser(args: {
 }) {
   const userId = randomUUID();
   const normalizedEmail = args.email.toLowerCase();
-  const passwordHash = await hashPassword(args.password);
   const db = args.db ?? prisma;
 
   const user = await db.user.create({
@@ -34,15 +34,20 @@ export async function createCredentialUser(args: {
     },
   });
 
-  await db.account.create({
-    data: {
-      id: randomUUID(),
-      accountId: userId,
-      providerId: "credential",
-      userId,
-      password: passwordHash,
-    },
-  });
+  // Only create an Account (credential) row when we have a password.
+  // Invited users skip this step; the account row is created when they accept.
+  if (args.password) {
+    const passwordHash = await hashPassword(args.password);
+    await db.account.create({
+      data: {
+        id: randomUUID(),
+        accountId: userId,
+        providerId: "credential",
+        userId,
+        password: passwordHash,
+      },
+    });
+  }
 
   await db.wallet.create({
     data: {

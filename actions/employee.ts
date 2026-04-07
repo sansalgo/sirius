@@ -6,16 +6,7 @@ import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { createCredentialUser } from "@/lib/user-provisioning";
 import { getTenantSeatSummary } from "@/lib/subscriptions";
-
-// Temporary password generator
-function generateTempPassword(length = 12) {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  let password = "";
-  for (let i = 0, n = charset.length; i < length; ++i) {
-    password += charset.charAt(Math.floor(Math.random() * n));
-  }
-  return password;
-}
+import { createAndSendInvitation } from "@/actions/invitation";
 
 export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
   const result = addEmployeeSchema.safeParse(data);
@@ -24,8 +15,6 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
   }
 
   const { name, email, role, status } = result.data;
-
-  const tempPassword = generateTempPassword();
 
   try {
     const { user: currentUser } = await getActionAuthContext("employees.manage");
@@ -44,24 +33,41 @@ export async function createEmployee(data: z.infer<typeof addEmployeeSchema>) {
       };
     }
 
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: currentUser.tenantId },
+      select: { name: true },
+    });
+
+    let newUserId: string;
+
     await prisma.$transaction(async (tx) => {
-      await createCredentialUser({
+      const newUser = await createCredentialUser({
         db: tx,
         email,
         name,
-        password: tempPassword,
+        // No password — user sets it via the invitation link
         tenantId: currentUser.tenantId,
         role: role as "ADMIN" | "MANAGER" | "EMPLOYEE",
         status,
+        emailVerified: false,
       });
+      newUserId = newUser.id;
     });
 
-    return { 
-      success: true, 
-      tempPassword 
-    };
+    // Send the invitation email outside the transaction so a failed email
+    // doesn't roll back the user creation
+    await createAndSendInvitation({
+      userId: newUserId!,
+      tenantId: currentUser.tenantId,
+      inviterName: currentUser.name,
+      tenantName: tenant?.name ?? "your workspace",
+      userEmail: email,
+      userName: name,
+    });
+
+    return { success: true };
   } catch (error: unknown) {
-    console.error("Employee creation error:", error);
+    if (process.env.NODE_ENV !== "production") console.error("Employee creation error:", error);
     return { error: getActionErrorMessage(error, "An unexpected error occurred during creation") };
   }
 }
@@ -127,7 +133,6 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
       }
     }
 
-    // 3. Update the user details
     await prisma.user.update({
       where: { id },
       data: {
@@ -139,7 +144,7 @@ export async function updateEmployee(data: z.infer<typeof editEmployeeSchema>) {
 
     return { success: true };
   } catch (error: unknown) {
-    console.error("Employee update error:", error);
+    if (process.env.NODE_ENV !== "production") console.error("Employee update error:", error);
     return { error: getActionErrorMessage(error, "An unexpected error occurred during update") };
   }
 }

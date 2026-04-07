@@ -4,10 +4,11 @@ import { useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Copy, Check, CirclePlus } from "lucide-react";
+import { CirclePlus, MailCheck, RefreshCw } from "lucide-react";
 
 import { addEmployeeSchema, type AddEmployeeInput } from "@/schemas/employee";
 import { createEmployee } from "@/actions/employee";
+import { resendInvitation } from "@/actions/invitation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,8 +34,7 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
-    const [successData, setSuccessData] = useState<{ email: string; tempPass: string } | null>(null);
-    const [copied, setCopied] = useState(false);
+    const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
 
     const form = useForm<AddEmployeeInput>({
         resolver: zodResolver(addEmployeeSchema),
@@ -53,27 +53,18 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
             const result = await createEmployee(data);
             if (result?.error) {
                 form.setError("root", { message: result.error });
-            } else if (result?.success && result.tempPassword) {
-                setSuccessData({ email: data.email, tempPass: result.tempPassword });
+            } else if (result?.success) {
+                setInvitedEmail(data.email);
                 form.reset();
                 router.refresh();
             }
         });
     };
 
-    const handleCopy = () => {
-        if (successData?.tempPass) {
-            navigator.clipboard.writeText(successData.tempPass);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        }
-    };
-
     const handleClose = (isOpen: boolean) => {
         setOpen(isOpen);
         if (!isOpen) {
-            // Reset after animation
-            setTimeout(() => setSuccessData(null), 300);
+            setTimeout(() => setInvitedEmail(null), 300);
         }
     };
 
@@ -86,12 +77,12 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-                {!successData ? (
+                {!invitedEmail ? (
                     <>
                         <DialogHeader>
                             <DialogTitle>Add Employee</DialogTitle>
                             <DialogDescription>
-                                Create a new employee profile. Roles determine permission levels in the app.
+                                An invitation email will be sent so the employee can set their own password.
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -170,42 +161,39 @@ export function AddEmployeeModal({ canAssignAdminRole }: { canAssignAdminRole: b
 
                             <DialogFooter>
                                 <Button type="submit" disabled={isPending}>
-                                    {isPending ? "Adding..." : "Add Employee"}
+                                    {isPending ? "Sending invite..." : "Send Invitation"}
                                 </Button>
                             </DialogFooter>
                         </form>
                     </>
                 ) : (
-                    <>
-                        <DialogHeader>
-                            <DialogTitle>Employee Created</DialogTitle>
-                            <DialogDescription>
-                                Please save this temporary password securely. You must provide it to the employee so they can log in.
-                                It will only be shown this one time.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-6">
-                            <div className="rounded-lg border bg-muted p-4 relative">
-                                <div className="text-sm font-medium text-muted-foreground mb-1">Email</div>
-                                <div className="font-medium mb-4">{successData.email}</div>
-
-                                <div className="text-sm font-medium text-muted-foreground mb-1">Temporary Password</div>
-                                <div className="flex items-center gap-2">
-                                    <div className="font-mono bg-background px-3 py-2 rounded border flex-1 break-all">
-                                        {successData.tempPass}
-                                    </div>
-                                    <Button size="icon" variant="outline" onClick={handleCopy}>
-                                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={() => setOpen(false)}>Done</Button>
-                        </DialogFooter>
-                    </>
+                    <InvitationSentView email={invitedEmail} onClose={() => setOpen(false)} />
                 )}
             </DialogContent>
         </Dialog>
+    );
+}
+
+function InvitationSentView({ email, onClose }: { email: string; onClose: () => void }) {
+    return (
+        <>
+            <DialogHeader>
+                <DialogTitle>Invitation Sent</DialogTitle>
+                <DialogDescription>
+                    The employee will receive an email to set their password and join your workspace.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-6 flex flex-col items-center gap-3 text-center">
+                <MailCheck className="h-10 w-10 text-green-500" />
+                <p className="text-sm text-muted-foreground">
+                    An invitation email was sent to <strong>{email}</strong>.
+                    <br />
+                    The link expires in 7 days.
+                </p>
+            </div>
+            <DialogFooter>
+                <Button onClick={onClose}>Done</Button>
+            </DialogFooter>
+        </>
     );
 }
