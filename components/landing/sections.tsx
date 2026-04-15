@@ -14,7 +14,8 @@ import {
   Users,
   Zap,
   BarChart3,
-  CheckCircle2,
+  Check,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,44 +24,9 @@ import { Button } from "@/components/ui/button";
 // ---------------------------------------------------------------------------
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0 },
 };
-
-function SectionBadge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">
-      {children}
-    </span>
-  );
-}
-
-function SectionHeading({
-  badge,
-  title,
-  description,
-}: {
-  badge: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="max-w-2xl"
-    >
-      <SectionBadge>{badge}</SectionBadge>
-      <h2 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-        {title}
-      </h2>
-      <p className="mt-4 text-lg leading-relaxed text-zinc-500">{description}</p>
-    </motion.div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Stats bar
@@ -68,15 +34,15 @@ function SectionHeading({
 
 const stats = [
   { value: "10 min", label: "Average setup time" },
-  { value: "3 roles", label: "Admin, Manager, Employee" },
+  { value: "3 roles", label: "Admin · Manager · Employee" },
   { value: "$0", label: "To get started" },
-  { value: "100%", label: "Audit trail for every action" },
+  { value: "100%", label: "Audit trail on every action" },
 ];
 
 export function StatsBar() {
   return (
-    <section className="border-y border-zinc-100 bg-zinc-50">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section className="border-b border-zinc-100">
+      <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-2 divide-x divide-y divide-zinc-100 md:grid-cols-4 md:divide-y-0">
           {stats.map((stat, i) => (
             <motion.div
@@ -85,11 +51,13 @@ export function StatsBar() {
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
-              transition={{ delay: i * 0.07, duration: 0.4, ease: "easeOut" }}
-              className="flex flex-col items-center gap-1 px-6 py-8 text-center"
+              transition={{ delay: i * 0.06, duration: 0.4, ease: "easeOut" }}
+              className="flex flex-col gap-0.5 px-6 py-7 text-center"
             >
-              <span className="text-2xl font-bold text-zinc-900">{stat.value}</span>
-              <span className="text-sm text-zinc-500">{stat.label}</span>
+              <span className="text-2xl font-bold tracking-tight text-zinc-900">
+                {stat.value}
+              </span>
+              <span className="text-xs text-zinc-400">{stat.label}</span>
             </motion.div>
           ))}
         </div>
@@ -99,7 +67,7 @@ export function StatsBar() {
 }
 
 // ---------------------------------------------------------------------------
-// Features
+// Features — Next.js-style grid with internal dividers
 // ---------------------------------------------------------------------------
 
 const features = [
@@ -108,81 +76,84 @@ const features = [
     title: "Structured peer recognition",
     description:
       "Give teams a governed way to send peer recognition without losing flexibility or culture fit.",
-    color: "bg-violet-50 text-violet-600",
   },
   {
     icon: BanknoteArrowUp,
     title: "Controlled point budgets",
     description:
       "Configure manager and peer allocation limits so reward programs stay fair and predictable at every scale.",
-    color: "bg-emerald-50 text-emerald-600",
   },
   {
     icon: Gift,
-    title: "Reward redemption workflows",
+    title: "Reward redemption",
     description:
       "Publish redeemable rewards, track requests, and give finance full visibility into point liabilities.",
-    color: "bg-amber-50 text-amber-600",
   },
   {
     icon: Sparkles,
     title: "Challenge-based engagement",
     description:
       "Launch repeatable challenges that reinforce behavior, collect evidence, and automate point awards.",
-    color: "bg-blue-50 text-blue-600",
   },
   {
     icon: ChartNoAxesCombined,
-    title: "Operational visibility",
+    title: "Live leaderboards",
     description:
-      "Live leaderboards and activity data show adoption, momentum, and recognition coverage at a glance.",
-    color: "bg-rose-50 text-rose-600",
+      "Activity data shows adoption, momentum, and recognition coverage at a glance across your org.",
   },
   {
     icon: ShieldCheck,
     title: "Role-aware administration",
     description:
       "Separate admin, manager, and employee responsibilities with permission-aware workflows that scale.",
-    color: "bg-zinc-100 text-zinc-600",
   },
 ];
 
 export function Features() {
   return (
     <section id="features" className="bg-white py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <SectionHeading
-          badge="Core capabilities"
-          title="Everything you need to run recognition with discipline."
-          description="Sirius combines recognition delivery, budget enforcement, rewards, and engagement programs in one workspace — built for admins, managers, and employees alike."
-        />
+      <div className="mx-auto max-w-6xl px-6">
+        {/* Section header */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="mb-16"
+        >
+          <p className="mb-3 text-sm font-medium text-zinc-400">Platform</p>
+          <h2 className="max-w-xl text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+            What&apos;s in Sirius?
+          </h2>
+        </motion.div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {features.map((feature, i) => {
-            const Icon = feature.icon;
-            return (
-              <motion.div
-                key={feature.title}
-                variants={fadeUp}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ delay: i * 0.08, duration: 0.5, ease: "easeOut" }}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="group relative flex flex-col gap-5 rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className={`inline-flex size-11 items-center justify-center rounded-xl ${feature.color}`}>
-                  <Icon className="size-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-zinc-900">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+        {/* Feature grid with internal dividers */}
+        <div className="border-t border-l border-zinc-100">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature, i) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div
+                  key={feature.title}
+                  variants={fadeUp}
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true, margin: "-30px" }}
+                  transition={{ delay: i * 0.06, duration: 0.45, ease: "easeOut" }}
+                  className="group border-b border-r border-zinc-100 p-8 transition-colors hover:bg-zinc-50"
+                >
+                  <div className="mb-5 inline-flex size-9 items-center justify-center rounded-lg border border-zinc-100 bg-white">
+                    <Icon className="size-4 text-zinc-700" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-zinc-900">{feature.title}</h3>
+                  <p className="text-sm leading-relaxed text-zinc-500">
                     {feature.description}
                   </p>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
@@ -190,7 +161,7 @@ export function Features() {
 }
 
 // ---------------------------------------------------------------------------
-// How it works (3-step)
+// How it works
 // ---------------------------------------------------------------------------
 
 const steps = [
@@ -199,14 +170,14 @@ const steps = [
     icon: Zap,
     title: "Set up your workspace",
     description:
-      "Create your company workspace, configure point budgets and allocation rules, and define what behaviors you want to reward.",
+      "Configure point budgets, allocation rules, and define what behaviors you want to reward — in minutes.",
   },
   {
     step: "02",
     icon: Users,
     title: "Invite your team",
     description:
-      "Add employees by role — admin, manager, or employee. Each role gets the right set of permissions automatically.",
+      "Add employees by role. Admin, manager, or employee — each gets the right permissions automatically.",
   },
   {
     step: "03",
@@ -219,29 +190,23 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section className="bg-zinc-950 py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section id="how-it-works" className="border-t border-zinc-100 bg-white py-24">
+      <div className="mx-auto max-w-6xl px-6">
         <motion.div
           variants={fadeUp}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
+          viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.5 }}
-          className="max-w-2xl"
+          className="mb-16"
         >
-          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-400">
-            How it works
-          </span>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <p className="mb-3 text-sm font-medium text-zinc-400">Get started</p>
+          <h2 className="max-w-xl text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
             Up and running in minutes.
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-zinc-400">
-            No lengthy implementations. Sirius is designed to go from signup to
-            first recognition in under ten minutes.
-          </p>
         </motion.div>
 
-        <div className="mt-16 grid gap-8 md:grid-cols-3">
+        <div className="grid gap-0 border-t border-l border-zinc-100 md:grid-cols-3">
           {steps.map((step, i) => {
             const Icon = step.icon;
             return (
@@ -250,28 +215,20 @@ export function HowItWorks() {
                 variants={fadeUp}
                 initial="hidden"
                 whileInView="show"
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
-                className="relative flex flex-col gap-5"
+                viewport={{ once: true, margin: "-30px" }}
+                transition={{ delay: i * 0.1, duration: 0.45, ease: "easeOut" }}
+                className="border-b border-r border-zinc-100 p-8"
               >
-                {/* Connector line */}
-                {i < steps.length - 1 && (
-                  <div className="absolute left-[calc(100%+1rem)] top-5 hidden h-px w-8 bg-white/10 md:block" />
-                )}
-                <div className="flex items-center gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
-                    <Icon className="size-5 text-white" />
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex size-9 items-center justify-center rounded-lg border border-zinc-100 bg-white">
+                    <Icon className="size-4 text-zinc-700" />
                   </div>
-                  <span className="text-xs font-medium tabular-nums text-zinc-600">
+                  <span className="font-mono text-2xl font-bold text-zinc-100">
                     {step.step}
                   </span>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-white">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                    {step.description}
-                  </p>
-                </div>
+                <h3 className="mb-2 font-semibold text-zinc-900">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-zinc-500">{step.description}</p>
               </motion.div>
             );
           })}
@@ -287,57 +244,65 @@ export function HowItWorks() {
 
 const outcomes = [
   {
-    role: "For People teams",
-    headline: "Turn recognition into an operating system, not a side initiative.",
-    body: "Sirius centralizes recognition, budgets, rewards, and participation so programs stay credible as headcount grows.",
+    role: "People teams",
+    headline: "Turn recognition into an operating system.",
+    body: "Centralize recognition, budgets, rewards, and participation so programs stay credible as headcount grows.",
     checks: ["Policy-enforced budgets", "Approval workflows", "Full audit trail"],
   },
   {
-    role: "For Managers",
-    headline: "Reward the right behavior without manual reconciliation.",
-    body: "Managers can allocate points, review challenges, and reinforce performance in one accountable workflow.",
+    role: "Managers",
+    headline: "Reward the right behavior without reconciliation.",
+    body: "Allocate points, review challenges, and reinforce performance in one accountable workflow.",
     checks: ["Peer allocation controls", "Challenge review queue", "Team activity view"],
   },
   {
-    role: "For Leadership",
-    headline: "See whether culture programs are actually driving action.",
-    body: "Track who is recognizing, who is being recognized, and where engagement is building across the organization.",
+    role: "Leadership",
+    headline: "See whether culture programs drive action.",
+    body: "Track who is recognizing, who is being recognized, and where engagement is growing.",
     checks: ["Live leaderboards", "Monthly activity data", "Participation coverage"],
   },
 ];
 
 export function Outcomes() {
   return (
-    <section className="bg-zinc-50 py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <SectionHeading
-          badge="Built for every role"
-          title="One platform that works for the whole org."
-          description="Sirius gives each stakeholder exactly what they need — and nothing they don't."
-        />
+    <section className="border-t border-zinc-100 bg-zinc-50 py-24">
+      <div className="mx-auto max-w-6xl px-6">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5 }}
+          className="mb-16"
+        >
+          <p className="mb-3 text-sm font-medium text-zinc-400">Built for every role</p>
+          <h2 className="max-w-xl text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+            One platform that works for the whole org.
+          </h2>
+        </motion.div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           {outcomes.map((outcome, i) => (
             <motion.div
               key={outcome.role}
               variants={fadeUp}
               initial="hidden"
               whileInView="show"
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
-              className="flex flex-col gap-5 rounded-2xl border border-zinc-200 bg-white p-7 shadow-sm"
+              viewport={{ once: true, margin: "-30px" }}
+              transition={{ delay: i * 0.1, duration: 0.45, ease: "easeOut" }}
+              className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-7"
             >
-              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
                 {outcome.role}
-              </span>
-              <h3 className="text-lg font-semibold leading-snug text-zinc-900">
+              </p>
+              <h3 className="text-base font-semibold leading-snug text-zinc-900">
                 {outcome.headline}
               </h3>
               <p className="flex-1 text-sm leading-relaxed text-zinc-500">{outcome.body}</p>
-              <ul className="space-y-2">
+              <ul className="space-y-2 border-t border-zinc-100 pt-4">
                 {outcome.checks.map((c) => (
-                  <li key={c} className="flex items-center gap-2.5 text-sm text-zinc-700">
-                    <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                  <li key={c} className="flex items-center gap-2 text-sm text-zinc-600">
+                    <Check className="size-3.5 shrink-0 text-zinc-400" strokeWidth={2.5} />
                     {c}
                   </li>
                 ))}
@@ -374,7 +339,7 @@ const tiers = [
   {
     name: "Pro",
     price: "$2",
-    cadence: "per month",
+    cadence: "per seat / month",
     description: "For companies rolling out recognition at full scale.",
     seats: "Unlimited seats",
     features: [
@@ -391,15 +356,29 @@ const tiers = [
 
 export function Pricing() {
   return (
-    <section id="pricing" className="bg-white py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <SectionHeading
-          badge="Pricing"
-          title="Simple pricing. No surprises."
-          description="Start free for smaller teams. Move to a flat paid tier when you need unlimited access across the company."
-        />
+    <section id="pricing" className="border-t border-zinc-100 bg-white py-24">
+      <div className="mx-auto max-w-6xl px-6">
+        {/* Header */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5 }}
+          className="mb-16 text-center"
+        >
+          <p className="mb-3 text-sm font-medium text-zinc-400">Pricing</p>
+          <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+            Simple pricing. No surprises.
+          </h2>
+          <p className="mx-auto mt-4 max-w-md text-zinc-500">
+            Start free for smaller teams. Upgrade when you need unlimited access
+            across the company.
+          </p>
+        </motion.div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:max-w-3xl">
+        {/* Cards */}
+        <div className="mx-auto grid max-w-2xl gap-4 lg:grid-cols-2">
           {tiers.map((tier, i) => (
             <motion.div
               key={tier.name}
@@ -407,72 +386,49 @@ export function Pricing() {
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className={`relative flex flex-col gap-6 rounded-2xl p-8 ${
+              transition={{ delay: i * 0.1, duration: 0.45, ease: "easeOut" }}
+              className={`relative flex flex-col gap-6 rounded-xl p-8 ${
                 tier.featured
-                  ? "bg-zinc-950 text-white shadow-2xl ring-1 ring-zinc-900"
+                  ? "bg-zinc-900 text-white"
                   : "border border-zinc-200 bg-white"
               }`}
             >
               {tier.featured && (
-                <span className="absolute right-6 top-6 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-zinc-300">
+                <span className="absolute right-5 top-5 rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-zinc-400">
                   Recommended
                 </span>
               )}
 
               <div>
-                <p
-                  className={`text-sm font-semibold ${
-                    tier.featured ? "text-zinc-400" : "text-zinc-500"
-                  }`}
-                >
+                <p className={`text-sm font-medium ${tier.featured ? "text-zinc-400" : "text-zinc-500"}`}>
                   {tier.name}
                 </p>
                 <div className="mt-2 flex items-end gap-1.5">
-                  <span
-                    className={`text-5xl font-bold tracking-tight ${
-                      tier.featured ? "text-white" : "text-zinc-900"
-                    }`}
-                  >
+                  <span className={`text-5xl font-bold tracking-tight ${tier.featured ? "text-white" : "text-zinc-900"}`}>
                     {tier.price}
                   </span>
-                  <span
-                    className={`mb-1.5 text-sm ${
-                      tier.featured ? "text-zinc-400" : "text-zinc-500"
-                    }`}
-                  >
+                  <span className={`mb-1.5 text-sm ${tier.featured ? "text-zinc-500" : "text-zinc-400"}`}>
                     {tier.cadence}
                   </span>
                 </div>
-                <p
-                  className={`mt-2 text-sm ${
-                    tier.featured ? "text-zinc-400" : "text-zinc-500"
-                  }`}
-                >
+                <p className={`mt-1.5 text-sm ${tier.featured ? "text-zinc-400" : "text-zinc-500"}`}>
                   {tier.description}
                 </p>
               </div>
 
-              <div
-                className={`rounded-xl px-4 py-3 text-sm font-medium ${
-                  tier.featured ? "bg-white/5 text-zinc-300" : "bg-zinc-50 text-zinc-600"
-                }`}
-              >
+              <div className={`rounded-lg px-4 py-2.5 text-sm font-medium ${
+                tier.featured
+                  ? "border border-white/10 bg-white/5 text-zinc-300"
+                  : "border border-zinc-100 bg-zinc-50 text-zinc-600"
+              }`}>
                 {tier.seats}
               </div>
 
-              <ul className="flex-1 space-y-3">
+              <ul className="flex-1 space-y-2.5">
                 {tier.features.map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm">
-                    <BadgeCheck
-                      className={`size-4 shrink-0 ${
-                        tier.featured ? "text-emerald-400" : "text-emerald-500"
-                      }`}
-                    />
-                    <span className={tier.featured ? "text-zinc-300" : "text-zinc-600"}>
-                      {f}
-                    </span>
+                  <li key={f} className="flex items-center gap-2.5 text-sm">
+                    <BadgeCheck className={`size-4 shrink-0 ${tier.featured ? "text-white" : "text-zinc-700"}`} />
+                    <span className={tier.featured ? "text-zinc-300" : "text-zinc-600"}>{f}</span>
                   </li>
                 ))}
               </ul>
@@ -481,10 +437,9 @@ export function Pricing() {
                 asChild
                 className={
                   tier.featured
-                    ? "w-full bg-white text-zinc-950 hover:bg-zinc-100 font-semibold"
-                    : "w-full"
+                    ? "w-full bg-white text-zinc-900 hover:bg-zinc-100 font-medium"
+                    : "w-full bg-zinc-900 text-white hover:bg-zinc-700 font-medium"
                 }
-                variant={tier.featured ? "default" : "outline"}
               >
                 <Link href={tier.href}>{tier.cta}</Link>
               </Button>
@@ -502,34 +457,32 @@ export function Pricing() {
 
 export function CTASection() {
   return (
-    <section className="bg-zinc-950 py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section className="bg-zinc-900">
+      <div className="mx-auto max-w-6xl px-6 py-24">
         <motion.div
           variants={fadeUp}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col items-center gap-8 text-center"
+          className="flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between"
         >
-          <div className="max-w-2xl space-y-4">
-            <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Give every recognition decision
-              <br />a system behind it.
+          <div className="max-w-xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Give every recognition decision a system behind it.
             </h2>
-            <p className="text-lg leading-relaxed text-zinc-400">
-              Start with 10 users for free. Roll out recognition with guardrails.
-              Expand when your team is ready.
+            <p className="mt-4 text-zinc-400">
+              Start with 10 users for free. Expand when your team is ready.
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
             <Button
               size="lg"
               asChild
-              className="gap-2 bg-white text-zinc-950 hover:bg-zinc-100 font-semibold"
+              className="gap-2 bg-white text-zinc-900 hover:bg-zinc-100 font-medium"
             >
               <Link href="/signup">
-                Start free — no credit card
+                Start free
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -539,7 +492,7 @@ export function CTASection() {
               asChild
               className="border border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white"
             >
-              <Link href="/login">Sign in to your workspace</Link>
+              <Link href="/login">Sign in</Link>
             </Button>
           </div>
         </motion.div>
@@ -554,24 +507,24 @@ export function CTASection() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-zinc-100 bg-white">
-      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-10">
+    <footer className="border-t border-zinc-800 bg-zinc-900">
+      <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-col gap-2">
+          <div>
             <div className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-900">
-                <BadgeCheck className="size-4 text-white" />
+              <div className="flex size-6 items-center justify-center rounded-md bg-white">
+                <Star className="size-3.5 fill-black text-zinc-900" />
               </div>
-              <span className="text-sm font-semibold text-zinc-900">Sirius</span>
+              <span className="text-sm font-semibold text-white">Sirius</span>
             </div>
-            <p className="max-w-xs text-sm text-zinc-500">
+            <p className="mt-2 max-w-xs text-sm text-zinc-500">
               Recognition operations for modern teams.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-x-12 gap-y-6">
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-600">
                 Product
               </p>
               {[
@@ -581,15 +534,14 @@ export function Footer() {
                 <a
                   key={label}
                   href={href}
-                  className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
+                  className="text-sm text-zinc-500 transition-colors hover:text-white"
                 >
                   {label}
                 </a>
               ))}
             </div>
-
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-600">
                 Account
               </p>
               {[
@@ -599,7 +551,7 @@ export function Footer() {
                 <Link
                   key={label}
                   href={href}
-                  className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
+                  className="text-sm text-zinc-500 transition-colors hover:text-white"
                 >
                   {label}
                 </Link>
@@ -608,7 +560,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-zinc-100 pt-8 text-center text-xs text-zinc-400">
+        <div className="mt-12 border-t border-zinc-800 pt-8 text-xs text-zinc-600">
           © {new Date().getFullYear()} Sirius. All rights reserved.
         </div>
       </div>

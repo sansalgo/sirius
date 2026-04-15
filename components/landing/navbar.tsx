@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { motion, useScroll, useMotionValueEvent } from "motion/react";
 import { Star } from "lucide-react";
@@ -17,55 +17,54 @@ export function Navbar() {
   return (
     <motion.header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "border-b border-white/10 bg-zinc-950/80 backdrop-blur-xl"
-          : "bg-transparent"
+        scrolled ? "border-b border-zinc-100 bg-white/95 backdrop-blur-md" : "bg-transparent"
       }`}
       initial={{ y: -16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/20 transition-colors group-hover:bg-white/15">
-            <Star className="size-4 text-white" strokeWidth={2} />
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="flex size-6 items-center justify-center rounded-md bg-zinc-900 transition-colors group-hover:bg-zinc-700">
+            <Star className="size-3 fill-white text-white" strokeWidth={2} />
           </div>
-          <span className="text-sm font-semibold tracking-wide text-white">Sirius</span>
+          <span className="text-sm font-semibold text-zinc-900">Sirius</span>
         </Link>
 
-        {/* Nav links – desktop only */}
-        <nav className="hidden items-center gap-8 md:flex">
+        {/* Nav links */}
+        <nav className="hidden items-center gap-6 md:flex">
           {[
             { label: "Features", href: "#features" },
+            { label: "How it works", href: "#how-it-works" },
             { label: "Pricing", href: "#pricing" },
           ].map(({ label, href }) => (
             <a
               key={label}
               href={href}
-              className="text-sm text-zinc-400 transition-colors hover:text-white"
+              className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
             >
               {label}
             </a>
           ))}
         </nav>
 
-        {/* Auth actions */}
-        <div className="flex items-center gap-2">
+        {/* Auth */}
+        <div className="flex items-center gap-1.5">
           <Button
             variant="ghost"
             size="sm"
             asChild
-            className="text-zinc-300 hover:bg-white/10 hover:text-white"
+            className="text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 text-sm"
           >
             <Link href="/login">Log in</Link>
           </Button>
           <Button
             size="sm"
             asChild
-            className="bg-white text-zinc-950 hover:bg-zinc-100"
+            className="bg-zinc-900 text-white hover:bg-zinc-700 text-sm font-medium"
           >
-            <Link href="/signup">Start free</Link>
+            <Link href="/signup">Get started</Link>
           </Button>
         </div>
       </div>
