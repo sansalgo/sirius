@@ -114,6 +114,8 @@ model Tenant {
   subscriptions        TenantSubscription[]
   billingRecords       BillingRecord[]
   invitations          EmployeeInvitation[]
+
+  @@map("tenant")
 }
 
 model User {

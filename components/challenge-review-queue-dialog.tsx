@@ -69,7 +69,6 @@ export function ChallengeReviewQueueDialog({
               <TableHead>Employee</TableHead>
               <TableHead>Points</TableHead>
               <TableHead>Submitted</TableHead>
-              <TableHead>Preview</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -82,21 +81,6 @@ export function ChallengeReviewQueueDialog({
                 </TableCell>
                 <TableCell>{submission.pointsAwarded}</TableCell>
                 <TableCell>{submission.submittedAt}</TableCell>
-                <TableCell>
-                  <div className="max-w-xs space-y-1">
-                    {submission.answers.slice(0, 2).map((answer) => (
-                      <div key={answer.key} className="text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">{answer.label}: </span>
-                        {answer.value || "-"}
-                      </div>
-                    ))}
-                    {submission.answers.length > 2 ? (
-                      <div className="text-xs text-muted-foreground">
-                        +{submission.answers.length - 2} more fields
-                      </div>
-                    ) : null}
-                  </div>
-                </TableCell>
                 <TableCell>
                   <ChallengeReviewActions
                     submissionId={submission.id}

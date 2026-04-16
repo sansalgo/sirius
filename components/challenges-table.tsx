@@ -177,9 +177,6 @@ export function ChallengesTable({
                         {challenge.description || "No description provided."}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <Badge variant="outline">
-                          {challenge.fields.length} fields
-                        </Badge>
                         {challenge.pendingSubmissions.length > 0 &&
                         !isEmployeeView ? (
                           <Badge variant="secondary">
