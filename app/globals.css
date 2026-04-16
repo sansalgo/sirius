@@ -124,3 +124,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  [data-slot="card"] {
+    @apply shadow-xs!;
+  }
+}
