@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,15 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { requirePageAccess } from "@/lib/authz";
 import { getTenantSeatSummary, PLAN_CONFIG } from "@/lib/subscriptions";
 import { prisma } from "@/lib/prisma";
 
 function formatDate(value: Date | null | undefined) {
-  if (!value) {
-    return "Not set";
-  }
-
+  if (!value) return "—";
   return value.toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -22,159 +23,136 @@ function formatDate(value: Date | null | undefined) {
   });
 }
 
+function formatRole(role: string) {
+  if (role === "ADMIN") return "Admin";
+  if (role === "MANAGER") return "Manager";
+  return "Employee";
+}
+
 export default async function AccountPage() {
   const { user } = await requirePageAccess("dashboard.view");
   const isAdmin = user.role === "ADMIN";
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: user.tenantId },
-    select: {
-      name: true,
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
+  const [dbUser, tenant, seatSummary] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { createdAt: true },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: {
+        name: true,
+        owner: { select: { name: true, email: true } },
       },
-    },
-  });
+    }),
+    isAdmin ? getTenantSeatSummary(user.tenantId) : Promise.resolve(null),
+  ]);
 
-  const seatSummary = isAdmin ? await getTenantSeatSummary(user.tenantId) : null;
-  const planDetails = seatSummary ? PLAN_CONFIG[seatSummary.plan] : null;
+  const planConfig = seatSummary ? PLAN_CONFIG[seatSummary.plan] : null;
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6">
-      <div className="space-y-1">
-        <h2 className="text-3xl font-bold tracking-tight">Account</h2>
-        <p className="text-muted-foreground">
-          Review your account details{isAdmin ? " and tenant subscription summary." : "."}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Account</h2>
+        <p className="text-sm text-muted-foreground">
+          Your profile and workspace details.
         </p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-1">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Profile */}
+        <Card>
           <CardHeader>
             <CardTitle>Profile</CardTitle>
-            <CardDescription>Your signed-in user details.</CardDescription>
+            <CardDescription>Your personal account information.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div>
-              <div className="text-muted-foreground">Name</div>
-              <div className="font-medium">{user.name}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Email</div>
-              <div className="font-medium">{user.email}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Role</div>
-              <div className="font-medium">{user.role}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Status</div>
-              <div className="font-medium">{user.status}</div>
-            </div>
+          <CardContent className="text-sm">
+            <dl className="grid grid-cols-[140px_1fr] gap-y-3">
+              <dt className="text-muted-foreground self-center">Name</dt>
+              <dd className="font-medium">{user.name}</dd>
+
+              <dt className="text-muted-foreground self-center">Email</dt>
+              <dd className="font-medium">{user.email}</dd>
+
+              <dt className="text-muted-foreground self-center">Role</dt>
+              <dd>
+                <Badge variant="secondary">{formatRole(user.role)}</Badge>
+              </dd>
+
+              <dt className="text-muted-foreground self-center">Status</dt>
+              <dd>
+                <Badge variant={user.status === "ACTIVE" ? "default" : "outline"}>
+                  {user.status === "ACTIVE" ? "Active" : "Inactive"}
+                </Badge>
+              </dd>
+
+              <dt className="text-muted-foreground self-center">Member since</dt>
+              <dd className="font-medium">{formatDate(dbUser?.createdAt)}</dd>
+            </dl>
           </CardContent>
         </Card>
 
-        <Card className="xl:col-span-2">
+        {/* Workspace */}
+        <Card>
           <CardHeader>
             <CardTitle>Workspace</CardTitle>
-            <CardDescription>Tenant-level information for your organization.</CardDescription>
+            <CardDescription>Your organization details.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 text-sm">
-            <div>
-              <div className="text-muted-foreground">Company</div>
-              <div className="font-medium">{tenant?.name ?? "Unknown tenant"}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Owner</div>
-              <div className="font-medium">{tenant?.owner?.name ?? "Unassigned"}</div>
-              <div className="text-muted-foreground">{tenant?.owner?.email ?? "No owner email"}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Access level</div>
-              <div className="font-medium">
-                {isAdmin ? "Admin-managed workspace" : "Standard workspace member"}
-              </div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Subscription visibility</div>
-              <div className="font-medium">
-                {isAdmin ? "Visible on this page" : "Managed by admins only"}
-              </div>
-            </div>
+          <CardContent className="text-sm">
+            <dl className="grid grid-cols-[140px_1fr] gap-y-3">
+              <dt className="text-muted-foreground self-start pt-0.5">
+                Organization
+              </dt>
+              <dd className="font-medium">{tenant?.name ?? "—"}</dd>
+
+              <dt className="text-muted-foreground self-start pt-0.5">Owner</dt>
+              <dd>
+                <div className="font-medium">
+                  {tenant?.owner?.name ?? "Unassigned"}
+                </div>
+                {tenant?.owner?.email && (
+                  <div className="text-xs text-muted-foreground">
+                    {tenant.owner.email}
+                  </div>
+                )}
+              </dd>
+            </dl>
+
+            {isAdmin && seatSummary && planConfig && (
+              <>
+                <Separator className="my-4" />
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{planConfig.label} plan</span>
+                      <Badge
+                        variant={
+                          seatSummary.plan === "PRO" ? "default" : "secondary"
+                        }
+                      >
+                        {seatSummary.plan}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {seatSummary.usedSeats} seat
+                      {seatSummary.usedSeats !== 1 ? "s" : ""} used
+                      {seatSummary.seatLimit !== null
+                        ? ` · ${seatSummary.seatsRemaining} remaining`
+                        : " · unlimited"}
+                    </p>
+                  </div>
+                  <Link href="/billing">
+                    <Button variant="outline" size="sm">
+                      Manage billing
+                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {isAdmin && seatSummary && planDetails ? (
-        <div className="grid gap-4 xl:grid-cols-3">
-          <Card className="xl:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Current Plan
-                <Badge variant={seatSummary.plan === "PRO" ? "default" : "secondary"}>
-                  {planDetails.label}
-                </Badge>
-              </CardTitle>
-              <CardDescription>{planDetails.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 text-sm">
-              <div>
-                <div className="text-muted-foreground">Subscription status</div>
-                <div className="font-medium">{seatSummary.subscription?.status ?? "ACTIVE"}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Billing provider</div>
-                <div className="font-medium">
-                  {seatSummary.subscription?.billingProvider ?? "Not connected yet"}
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Current period start</div>
-                <div className="font-medium">
-                  {formatDate(seatSummary.subscription?.currentPeriodStart)}
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Current period end</div>
-                <div className="font-medium">
-                  {formatDate(seatSummary.subscription?.currentPeriodEnd)}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="xl:col-span-1">
-            <CardHeader>
-              <CardTitle>Seat Usage</CardTitle>
-              <CardDescription>
-                Owner is excluded from the count, all other members consume seats.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div>
-                <div className="text-muted-foreground">Seats used</div>
-                <div className="text-2xl font-semibold">{seatSummary.usedSeats}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Seat limit</div>
-                <div className="font-medium">
-                  {seatSummary.seatLimit === null ? "Unlimited" : seatSummary.seatLimit}
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Remaining seats</div>
-                <div className="font-medium">
-                  {seatSummary.seatsRemaining === null ? "Unlimited" : seatSummary.seatsRemaining}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      ) : null}
     </div>
   );
 }
