@@ -169,7 +169,7 @@ export default async function ChallengesPage() {
   const data = await getData();
 
   return (
-    <div className="flex-1 p-8 pt-6">
+    <div className="flex-1 space-y-6 p-8 pt-6">
       <ChallengesTable
         challenges={data.challenges}
         canManage={data.canManage}

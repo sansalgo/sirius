@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { AddChallengeModal } from "@/components/add-challenge-modal";
 import { ChallengeCompleteDialog } from "@/components/challenge-complete-dialog";
+import { ChallengeReviewQueueDialog } from "@/components/challenge-review-queue-dialog";
 import { ChallengeRowActions } from "@/components/challenge-row-actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -46,10 +46,7 @@ type ChallengeRow = {
     id: string;
     pointsAwarded: number;
     submittedAt: string;
-    user: {
-      name: string;
-      email: string;
-    };
+    user: { name: string; email: string };
     answers: Array<{
       key: string;
       label: string;
@@ -67,34 +64,57 @@ type ChallengesTableProps = {
   currentUserStatus: "ACTIVE" | "INACTIVE" | null;
 };
 
-function getStatusVariant(status: "PENDING" | "APPROVED" | "REJECTED") {
-  if (status === "APPROVED") return "default";
-  if (status === "REJECTED") return "destructive";
-  return "secondary";
-}
+type AvailabilityVariant = "default" | "secondary" | "outline";
 
-function getChallengeAvailability(challenge: ChallengeRow) {
+function getChallengeAvailability(challenge: ChallengeRow): {
+  label: string;
+  variant: AvailabilityVariant;
+  disabled: boolean;
+} {
   const now = new Date();
   const startDate = challenge.startDate ? new Date(challenge.startDate) : null;
   const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
 
-  if (!challenge.isActive) {
-    return { label: "Inactive", disabled: true };
-  }
-  if (startDate && now < startDate) {
-    return { label: "Upcoming", disabled: true };
-  }
-  if (endDate && now > endDate) {
-    return { label: "Closed", disabled: true };
-  }
-
-  return { label: "Open", disabled: false };
+  if (!challenge.isActive) return { label: "Inactive", variant: "outline", disabled: true };
+  if (startDate && now < startDate) return { label: "Upcoming", variant: "secondary", disabled: true };
+  if (endDate && now > endDate) return { label: "Closed", variant: "outline", disabled: true };
+  return { label: "Open", variant: "default", disabled: false };
 }
 
 function formatWindow(challenge: ChallengeRow) {
-  const start = challenge.startDate ? new Date(challenge.startDate).toLocaleDateString() : "Now";
-  const end = challenge.endDate ? new Date(challenge.endDate).toLocaleDateString() : "No end";
-  return `${start} - ${end}`;
+  if (!challenge.startDate && !challenge.endDate) return "Ongoing";
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  const start = challenge.startDate ? fmt(challenge.startDate) : "Now";
+  const end = challenge.endDate ? fmt(challenge.endDate) : "No end";
+  return `${start} – ${end}`;
+}
+
+function SubmissionStatus({
+  status,
+  rejectionReason,
+}: {
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason?: string | null;
+}) {
+  const map = {
+    PENDING: { label: "Pending review", variant: "secondary" as const },
+    APPROVED: { label: "Approved", variant: "default" as const },
+    REJECTED: { label: "Rejected", variant: "destructive" as const },
+  };
+  const { label, variant } = map[status];
+  return (
+    <div className="space-y-1">
+      <Badge variant={variant}>{label}</Badge>
+      {status === "REJECTED" && rejectionReason && (
+        <p className="max-w-xs text-xs text-muted-foreground">{rejectionReason}</p>
+      )}
+    </div>
+  );
 }
 
 export function ChallengesTable({
@@ -107,168 +127,169 @@ export function ChallengesTable({
   const [tab, setTab] = useState<"available" | "completed">("available");
 
   const visibleChallenges = useMemo(() => {
-    if (!isEmployeeView) {
-      return challenges;
-    }
-
-    if (tab === "completed") {
-      return challenges.filter((challenge) => challenge.latestSubmission?.status === "APPROVED");
-    }
-
-    return challenges.filter((challenge) => challenge.latestSubmission?.status !== "APPROVED");
+    if (!isEmployeeView) return challenges;
+    if (tab === "completed")
+      return challenges.filter((c) => c.latestSubmission?.status === "APPROVED");
+    return challenges.filter((c) => c.latestSubmission?.status !== "APPROVED");
   }, [challenges, isEmployeeView, tab]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end gap-4">
-        {canManage ? <AddChallengeModal /> : null}
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Challenges</h2>
+          <p className="text-sm text-muted-foreground">
+            {isEmployeeView
+              ? "Complete challenges to earn points."
+              : "Manage challenges and review employee submissions."}
+          </p>
+        </div>
+        {canManage && <AddChallengeModal />}
       </div>
 
-      {isEmployeeView ? (
-        <div className="flex items-center gap-2">
-          <Tabs defaultValue={tab}>
-            <TabsList>
-              <TabsTrigger
-                onClick={() => setTab("available")}
-                value="available"
-              >
-                Available
-              </TabsTrigger>
-              <TabsTrigger
-                onClick={() => setTab("completed")}
-                value="completed"
-              >
-                Completed
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      ) : null}
+      {/* Employee tabs */}
+      {isEmployeeView && (
+        <Tabs defaultValue={tab}>
+          <TabsList>
+            <TabsTrigger value="available" onClick={() => setTab("available")}>
+              Available
+            </TabsTrigger>
+            <TabsTrigger value="completed" onClick={() => setTab("completed")}>
+              Completed
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
       <div className="rounded-md border bg-background">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Mode</TableHead>
+              <TableHead>Challenge</TableHead>
               <TableHead>Points</TableHead>
-              <TableHead>Window</TableHead>
-              <TableHead>Status</TableHead>
+              {!isEmployeeView && <TableHead>Window</TableHead>}
+              <TableHead>Mode</TableHead>
+              {isEmployeeView ? (
+                <TableHead>Status</TableHead>
+              ) : (
+                <>
+                  <TableHead>Status</TableHead>
+                  {canReview && <TableHead>Reviews</TableHead>}
+                </>
+              )}
               <TableHead>{isEmployeeView ? "Action" : "Actions"}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {visibleChallenges.length ? (
               visibleChallenges.map((challenge) => {
-                const availability = getChallengeAvailability(challenge)
-                const hasSubmitted =
-                  challenge.latestSubmission?.status === "PENDING" ||
-                  challenge.latestSubmission?.status === "APPROVED"
-                const disabled =
-                  currentUserStatus !== "ACTIVE" ||
-                  availability.disabled ||
-                  hasSubmitted
+                const availability = getChallengeAvailability(challenge);
+                const submission = challenge.latestSubmission;
+                const canAct =
+                  currentUserStatus === "ACTIVE" &&
+                  !availability.disabled &&
+                  (!submission || submission.status === "REJECTED");
 
                 return (
                   <TableRow key={challenge.id}>
-                    <TableCell className="font-medium">
-                      <div>{challenge.title}</div>
-                      <div className="max-w-md text-xs text-muted-foreground">
-                        {challenge.description || "No description provided."}
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {challenge.pendingSubmissions.length > 0 &&
-                        !isEmployeeView ? (
-                          <Badge variant="secondary">
-                            {challenge.pendingSubmissions.length} pending
-                          </Badge>
-                        ) : null}
-                      </div>
+                    {/* Challenge title + description */}
+                    <TableCell className="max-w-xs">
+                      <div className="font-medium">{challenge.title}</div>
+                      {challenge.description && (
+                        <div className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                          {challenge.description}
+                        </div>
+                      )}
                     </TableCell>
+
+                    {/* Points */}
+                    <TableCell className="font-mono text-sm">
+                      {challenge.pointsAward}
+                    </TableCell>
+
+                    {/* Window (manager/admin only) */}
+                    {!isEmployeeView && (
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {formatWindow(challenge)}
+                      </TableCell>
+                    )}
+
+                    {/* Mode */}
                     <TableCell>
                       <Badge
-                        variant={
-                          challenge.approvalRequired ? "secondary" : "default"
-                        }
+                        variant={challenge.approvalRequired ? "secondary" : "outline"}
                       >
-                        {challenge.approvalRequired
-                          ? "Approval required"
-                          : "Auto award"}
+                        {challenge.approvalRequired ? "Needs approval" : "Auto-award"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{challenge.pointsAward}</TableCell>
-                    <TableCell>{formatWindow(challenge)}</TableCell>
+
+                    {/* Status */}
                     <TableCell>
                       {isEmployeeView ? (
-                        challenge.latestSubmission ? (
-                          <>
-                            <Badge
-                              variant={getStatusVariant(
-                                challenge.latestSubmission.status,
-                              )}
-                            >
-                              {challenge.latestSubmission.status}
-                            </Badge>
-                            {challenge.latestSubmission.status === "REJECTED" &&
-                            challenge.latestSubmission.rejectionReason ? (
-                              <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                                {challenge.latestSubmission.rejectionReason}
-                              </p>
-                            ) : null}
-                          </>
+                        submission ? (
+                          <SubmissionStatus
+                            status={submission.status}
+                            rejectionReason={submission.rejectionReason}
+                          />
                         ) : (
-                          <Badge
-                            variant={
-                              availability.disabled ? "outline" : "default"
-                            }
-                          >
+                          <Badge variant={availability.variant}>
                             {availability.label}
                           </Badge>
                         )
                       ) : (
-                        <Badge
-                          variant={challenge.isActive ? "default" : "outline"}
-                        >
-                          {challenge.isActive ? "ACTIVE" : "INACTIVE"}
+                        <Badge variant={challenge.isActive ? "default" : "outline"}>
+                          {challenge.isActive ? "Active" : "Inactive"}
                         </Badge>
                       )}
                     </TableCell>
+
+                    {/* Reviews column (manager/admin with review permission) */}
+                    {!isEmployeeView && canReview && (
+                      <TableCell>
+                        {challenge.pendingSubmissions.length > 0 ? (
+                          <ChallengeReviewQueueDialog
+                            challengeTitle={challenge.title}
+                            submissions={challenge.pendingSubmissions}
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Action */}
                     <TableCell>
                       {isEmployeeView ? (
-                        <ChallengeCompleteDialog
-                          challenge={{
-                            id: challenge.id,
-                            title: challenge.title,
-                            approvalRequired: challenge.approvalRequired,
-                            fields: challenge.fields,
-                          }}
-                          disabled={tab === "completed" || disabled}
-                          buttonLabel={
-                            challenge.latestSubmission?.status === "PENDING"
-                              ? "Pending"
-                              : challenge.latestSubmission?.status ===
-                                  "APPROVED"
-                                ? "Completed"
-                                : challenge.latestSubmission?.status ===
-                                    "REJECTED"
-                                  ? "Resubmit"
-                                  : "Complete"
-                          }
-                        />
+                        canAct ? (
+                          <ChallengeCompleteDialog
+                            challenge={{
+                              id: challenge.id,
+                              title: challenge.title,
+                              approvalRequired: challenge.approvalRequired,
+                              fields: challenge.fields,
+                            }}
+                            buttonLabel={
+                              submission?.status === "REJECTED" ? "Resubmit" : "Complete"
+                            }
+                          />
+                        ) : null
                       ) : (
                         <ChallengeRowActions
                           challenge={challenge}
                           canManage={canManage}
-                          canReview={canReview}
                         />
                       )}
                     </TableCell>
                   </TableRow>
-                )
+                );
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell
+                  colSpan={isEmployeeView ? 5 : canReview ? 7 : 6}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   {isEmployeeView && tab === "completed"
                     ? "No completed challenges yet."
                     : "No challenges found."}
@@ -279,5 +300,5 @@ export function ChallengesTable({
         </Table>
       </div>
     </div>
-  )
+  );
 }

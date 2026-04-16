@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteChallengeAction } from "@/actions/challenge";
 import { AddChallengeModal } from "@/components/add-challenge-modal";
-import { ChallengeReviewQueueDialog } from "@/components/challenge-review-queue-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -54,13 +53,11 @@ type ChallengeRowActionsProps = {
     }>;
   };
   canManage: boolean;
-  canReview: boolean;
 };
 
 export function ChallengeRowActions({
   challenge,
   canManage,
-  canReview,
 }: ChallengeRowActionsProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -69,13 +66,6 @@ export function ChallengeRowActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {canReview && challenge.pendingSubmissions.length > 0 ? (
-        <ChallengeReviewQueueDialog
-          challengeTitle={challenge.title}
-          submissions={challenge.pendingSubmissions}
-        />
-      ) : null}
-
       {canManage ? (
         <AddChallengeModal
           challenge={{
