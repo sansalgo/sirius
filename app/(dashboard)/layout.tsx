@@ -11,15 +11,13 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { getSubscriptionBannerState } from "@/lib/subscriptions"
-import { getOnboardingState } from "@/actions/onboarding"
 import { SubscriptionBanner } from "@/components/subscription-banner"
 import { EmailVerificationBanner } from "@/components/email-verification-banner"
-import { OnboardingChecklistWrapper } from "@/components/onboarding-checklist-wrapper"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user } = await requirePageAccess("dashboard.view")
 
-    const [wallet, bannerState, onboarding, dbUser] = await Promise.all([
+    const [wallet, bannerState, dbUser] = await Promise.all([
         can(user.role, "peer.send")
             ? prisma.wallet.findUnique({
                 where: {
@@ -35,10 +33,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         can(user.role, "settings.view")
             ? getSubscriptionBannerState(user.tenantId)
             : Promise.resolve({ type: "none" as const }),
-        // Onboarding only shown to admins
-        can(user.role, "settings.view")
-            ? getOnboardingState(user.tenantId)
-            : Promise.resolve(null),
         prisma.user.findUnique({
             where: { id: user.id },
             select: { emailVerified: true },
@@ -50,10 +44,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         : 0
 
     const isEmailUnverified = dbUser?.emailVerified === false
-    const showOnboarding =
-        onboarding !== null &&
-        !onboarding.dismissed &&
-        can(user.role, "settings.view")
 
     return (
         <SidebarProvider>
@@ -82,11 +72,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
                     )}
                     {isEmailUnverified && (
                         <EmailVerificationBanner email={user.email} />
-                    )}
-
-                    {/* Onboarding checklist (admin only, dismissible) */}
-                    {showOnboarding && (
-                        <OnboardingChecklistWrapper steps={onboarding.steps} />
                     )}
 
                     {children}
