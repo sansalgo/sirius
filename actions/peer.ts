@@ -65,7 +65,7 @@ export async function sendPeerPointsAction(data: z.infer<typeof sendPeerPointsSc
     return { error: result.error.issues[0].message };
   }
 
-  const { toUserId, amount } = result.data;
+  const { toUserId, categoryId, message } = result.data;
 
   try {
     const { user } = await getActionAuthContext("peer.send");
@@ -94,6 +94,34 @@ export async function sendPeerPointsAction(data: z.infer<typeof sendPeerPointsSc
         update: {},
         create: { tenantId },
       });
+
+      // Resolve the final amount — from category or from manual input
+      let amount: number;
+      let resolvedCategoryId: string | null = null;
+
+      if (categoryId) {
+        if (!tenantSettings.peerRecognitionCategoriesEnabled) {
+          throw new Error("Category-based recognition is not enabled.");
+        }
+
+        const category = await tx.peerRecognitionCategory.findFirst({
+          where: { id: categoryId, tenantId, status: "ACTIVE" },
+          select: { id: true, points: true },
+        });
+
+        if (!category) {
+          throw new Error("Selected category is not available.");
+        }
+
+        amount = category.points;
+        resolvedCategoryId = category.id;
+      } else {
+        if (!result.data.amount) {
+          throw new Error("Amount is required.");
+        }
+        amount = result.data.amount;
+      }
+
       const { periodStart, periodEnd } = getAllocationPeriod(
         tenantSettings.peerAllocationFrequency
       );
@@ -145,6 +173,8 @@ export async function sendPeerPointsAction(data: z.infer<typeof sendPeerPointsSc
           toUserId,
           amount,
           type: "PEER",
+          note: message ?? null,
+          categoryId: resolvedCategoryId,
         },
       });
 
