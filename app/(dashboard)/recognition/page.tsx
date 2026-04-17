@@ -14,12 +14,13 @@ import {
 async function getData() {
   const { user } = await requirePageAccess("recognition.view");
 
-  const [statusResult, employees, transfers] = await Promise.all([
+  const [statusResult, employees, transfers, settings] = await Promise.all([
     getPeerAllocationStatus(),
     prisma.user.findMany({
       where: {
         tenantId: user.tenantId,
         status: "ACTIVE",
+        role: "EMPLOYEE",
         id: { not: user.id },
       },
       select: { id: true, name: true, email: true },
@@ -35,19 +36,37 @@ async function getData() {
         id: true,
         fromUserId: true,
         amount: true,
+        note: true,
         createdAt: true,
         fromUser: { select: { name: true } },
         toUser: { select: { name: true } },
+        category: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    prisma.tenantSettings.upsert({
+      where: { tenantId: user.tenantId },
+      update: {},
+      create: { tenantId: user.tenantId },
+      select: { peerRecognitionCategoriesEnabled: true },
+    }),
   ]);
+
+  const activeCategories = settings.peerRecognitionCategoriesEnabled
+    ? await prisma.peerRecognitionCategory.findMany({
+        where: { tenantId: user.tenantId, status: "ACTIVE" },
+        select: { id: true, name: true, points: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
 
   return {
     currentUserId: user.id,
     employees,
     transfers,
+    categoriesEnabled: settings.peerRecognitionCategoriesEnabled,
+    categories: activeCategories,
     status: statusResult.success
       ? statusResult.status
       : {
@@ -65,8 +84,6 @@ export default async function RecognitionPage() {
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6">
-
-
       <div className="rounded-md border bg-background p-6">
         <h3 className="text-lg font-semibold">Peer Budget</h3>
         <p className="text-muted-foreground">
@@ -78,7 +95,11 @@ export default async function RecognitionPage() {
       </div>
 
       <div className="flex items-center justify-end">
-        <PeerSendForm users={data.employees} />
+        <PeerSendForm
+          users={data.employees}
+          categoriesEnabled={data.categoriesEnabled}
+          categories={data.categories}
+        />
       </div>
 
       <div className="rounded-md border bg-background">
@@ -87,7 +108,9 @@ export default async function RecognitionPage() {
             <TableRow>
               <TableHead>From</TableHead>
               <TableHead>To</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Message</TableHead>
               <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
@@ -97,6 +120,9 @@ export default async function RecognitionPage() {
                 <TableRow key={transfer.id}>
                   <TableCell>{transfer.fromUser?.name ?? "-"}</TableCell>
                   <TableCell>{transfer.toUser?.name ?? "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {transfer.category?.name ?? "-"}
+                  </TableCell>
                   <TableCell
                     className={
                       transfer.fromUserId === data.currentUserId
@@ -107,12 +133,15 @@ export default async function RecognitionPage() {
                     {transfer.fromUserId === data.currentUserId ? "-" : "+"}
                     {transfer.amount}
                   </TableCell>
+                  <TableCell className="max-w-48 truncate text-muted-foreground">
+                    {transfer.note ?? "-"}
+                  </TableCell>
                   <TableCell>{new Date(transfer.createdAt).toLocaleString()}</TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No peer transfers yet.
                 </TableCell>
               </TableRow>

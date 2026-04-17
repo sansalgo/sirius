@@ -22,3 +22,9 @@ export const pointsSettingsSchema = z.object({
 });
 
 export type PointsSettingsInput = z.infer<typeof pointsSettingsSchema>;
+
+export const peerCategoriesToggleSchema = z.object({
+  peerRecognitionCategoriesEnabled: z.boolean(),
+});
+
+export type PeerCategoriesToggleInput = z.infer<typeof peerCategoriesToggleSchema>;

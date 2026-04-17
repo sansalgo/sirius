@@ -96,6 +96,8 @@ async function createLedgerEntry(args: {
   amount: number;
   type: "ALLOCATION" | "PEER" | "CHALLENGE" | "REWARD";
   createdAt: Date;
+  note?: string;
+  categoryId?: string;
 }) {
   await prisma.pointLedger.create({
     data: {
@@ -104,6 +106,8 @@ async function createLedgerEntry(args: {
       toUserId: args.toUserId,
       amount: args.amount,
       type: args.type,
+      note: args.note ?? null,
+      categoryId: args.categoryId ?? null,
       createdAt: args.createdAt,
     },
   });
@@ -199,8 +203,57 @@ async function main() {
       managerAllocationFrequency: "MONTHLY",
       peerAllocationLimit: 250,
       peerAllocationFrequency: "MONTHLY",
+      peerRecognitionCategoriesEnabled: true,
     },
   });
+
+  const categories = await prisma.$transaction([
+    prisma.peerRecognitionCategory.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Helped a Teammate",
+        description: "Recognise someone who stepped up to help a colleague.",
+        points: 50,
+        status: "ACTIVE",
+      },
+    }),
+    prisma.peerRecognitionCategory.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Great Collaboration",
+        description: "Awarded for exceptional cross-team or cross-functional teamwork.",
+        points: 75,
+        status: "ACTIVE",
+      },
+    }),
+    prisma.peerRecognitionCategory.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Knowledge Sharing",
+        description: "For sharing expertise through demos, writeups, or mentoring.",
+        points: 80,
+        status: "ACTIVE",
+      },
+    }),
+    prisma.peerRecognitionCategory.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Above and Beyond",
+        description: "For going the extra mile to deliver outstanding results.",
+        points: 100,
+        status: "ACTIVE",
+      },
+    }),
+    prisma.peerRecognitionCategory.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Help with Documentation",
+        description: "For improving docs, writing guides, or keeping wikis up to date.",
+        points: 150,
+        status: "INACTIVE",
+      },
+    }),
+  ]);
 
   const admin = await createCredentialUser({
     tenantId: tenant.id,
@@ -487,36 +540,46 @@ async function main() {
     createdAt: daysAgo(13),
   });
 
+  // categories[0]=Helped a Teammate(50), [1]=Great Collaboration(75),
+  // [2]=Knowledge Sharing(80), [3]=Above and Beyond(100), [4]=Help with Documentation(150)
   await createLedgerEntry({
     tenantId: tenant.id,
     fromUserId: employees[0].id,
     toUserId: employees[1].id,
-    amount: 40,
+    amount: categories[0].points,
     type: "PEER",
+    categoryId: categories[0].id,
+    note: "Really helped me unblock the auth issue!",
     createdAt: daysAgo(9),
   });
   await createLedgerEntry({
     tenantId: tenant.id,
     fromUserId: employees[1].id,
     toUserId: employees[2].id,
-    amount: 30,
+    amount: categories[1].points,
     type: "PEER",
+    categoryId: categories[1].id,
+    note: "Great work on the cross-team sprint.",
     createdAt: daysAgo(8),
   });
   await createLedgerEntry({
     tenantId: tenant.id,
     fromUserId: employees[2].id,
     toUserId: employees[0].id,
-    amount: 45,
+    amount: categories[3].points,
     type: "PEER",
+    categoryId: categories[3].id,
+    note: "Delivered the dashboard feature ahead of schedule.",
     createdAt: daysAgo(7),
   });
   await createLedgerEntry({
     tenantId: tenant.id,
     fromUserId: employees[4].id,
     toUserId: employees[5].id,
-    amount: 25,
+    amount: categories[2].points,
     type: "PEER",
+    categoryId: categories[2].id,
+    note: "Ran a great internal demo on the new pipeline.",
     createdAt: daysAgo(6),
   });
 
@@ -675,7 +738,7 @@ async function main() {
         tenantId: tenant.id,
         userId: employees[0].id,
         allocationLimit: 250,
-        usedAmount: 40,
+        usedAmount: categories[0].points, // sent "Helped a Teammate"
         periodStart: daysAgo(10),
         periodEnd: daysAgo(-20),
       },
@@ -683,7 +746,23 @@ async function main() {
         tenantId: tenant.id,
         userId: employees[1].id,
         allocationLimit: 250,
-        usedAmount: 30,
+        usedAmount: categories[1].points, // sent "Great Collaboration"
+        periodStart: daysAgo(10),
+        periodEnd: daysAgo(-20),
+      },
+      {
+        tenantId: tenant.id,
+        userId: employees[2].id,
+        allocationLimit: 250,
+        usedAmount: categories[3].points, // sent "Above and Beyond"
+        periodStart: daysAgo(10),
+        periodEnd: daysAgo(-20),
+      },
+      {
+        tenantId: tenant.id,
+        userId: employees[4].id,
+        allocationLimit: 250,
+        usedAmount: categories[2].points, // sent "Knowledge Sharing"
         periodStart: daysAgo(10),
         periodEnd: daysAgo(-20),
       },

@@ -27,24 +27,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type Category = { id: string; name: string; points: number };
+
 type PeerSendFormProps = {
   users: { id: string; name: string; email: string }[];
+  categoriesEnabled: boolean;
+  categories: Category[];
 };
 
-export function PeerSendForm({ users }: PeerSendFormProps) {
+const emptyValues: SendPeerPointsInput = {
+  toUserId: "",
+  amount: undefined,
+  categoryId: undefined,
+  message: "",
+};
+
+export function PeerSendForm({ users, categoriesEnabled, categories }: PeerSendFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<SendPeerPointsInput>({
     resolver: zodResolver(sendPeerPointsSchema),
-    defaultValues: {
-      toUserId: "",
-      amount: 0,
-      message: "",
-    },
+    defaultValues: emptyValues,
   });
+
   const selectedUserId = useWatch({ control: form.control, name: "toUserId" });
+  const selectedCategoryId = useWatch({ control: form.control, name: "categoryId" });
+
+  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
   const onSubmit = (data: SendPeerPointsInput) => {
     startTransition(async () => {
@@ -53,7 +64,7 @@ export function PeerSendForm({ users }: PeerSendFormProps) {
         form.setError("root", { message: result.error });
         return;
       }
-      form.reset({ toUserId: "", amount: 0, message: "" });
+      form.reset(emptyValues);
       setOpen(false);
       router.refresh();
     });
@@ -61,10 +72,7 @@ export function PeerSendForm({ users }: PeerSendFormProps) {
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
-
-    if (!isOpen) {
-      form.reset({ toUserId: "", amount: 0, message: "" });
-    }
+    if (!isOpen) form.reset(emptyValues);
   };
 
   return (
@@ -75,11 +83,13 @@ export function PeerSendForm({ users }: PeerSendFormProps) {
           <span className="hidden lg:inline">Send Recognition</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Send Peer Recognition</DialogTitle>
           <DialogDescription>
-            Send peer-to-peer points to a teammate within your current budget.
+            {categoriesEnabled
+              ? "Select a recognition category and a teammate to send points."
+              : "Send peer-to-peer points to a teammate within your current budget."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -92,15 +102,12 @@ export function PeerSendForm({ users }: PeerSendFormProps) {
             <Select
               disabled={isPending}
               value={selectedUserId}
-              onValueChange={(value) => {
-                form.setValue("toUserId", value, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
-              }}
+              onValueChange={(value) =>
+                form.setValue("toUserId", value, { shouldDirty: true, shouldValidate: true })
+              }
             >
               <SelectTrigger id="toUserId" className="w-full">
-                <SelectValue placeholder="Choose Employee" />
+                <SelectValue placeholder="Choose employee" />
               </SelectTrigger>
               <SelectContent>
                 {users.map((user) => (
@@ -117,24 +124,63 @@ export function PeerSendForm({ users }: PeerSendFormProps) {
             ) : null}
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="amount">Points</FieldLabel>
-            <Input
-              id="amount"
-              type="number"
-              disabled={isPending}
-              {...form.register("amount", { valueAsNumber: true })}
-            />
-            {form.formState.errors.amount ? (
-              <FieldDescription className="text-red-500">
-                {form.formState.errors.amount.message}
-              </FieldDescription>
-            ) : null}
-          </Field>
+          {categoriesEnabled ? (
+            <Field>
+              <FieldLabel htmlFor="categoryId">Recognition Category</FieldLabel>
+              <Select
+                disabled={isPending}
+                value={selectedCategoryId ?? ""}
+                onValueChange={(value) =>
+                  form.setValue("categoryId", value, { shouldDirty: true, shouldValidate: true })
+                }
+              >
+                <SelectTrigger id="categoryId" className="w-full">
+                  <SelectValue placeholder="Choose category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name} — {cat.points} pts
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCategory ? (
+                <FieldDescription>
+                  This will send <span className="font-medium">{selectedCategory.points} points</span>.
+                </FieldDescription>
+              ) : null}
+              {form.formState.errors.categoryId ? (
+                <FieldDescription className="text-red-500">
+                  {form.formState.errors.categoryId.message}
+                </FieldDescription>
+              ) : null}
+            </Field>
+          ) : (
+            <Field>
+              <FieldLabel htmlFor="amount">Points</FieldLabel>
+              <Input
+                id="amount"
+                type="number"
+                disabled={isPending}
+                {...form.register("amount", { valueAsNumber: true })}
+              />
+              {form.formState.errors.amount ? (
+                <FieldDescription className="text-red-500">
+                  {form.formState.errors.amount.message}
+                </FieldDescription>
+              ) : null}
+            </Field>
+          )}
 
           <Field>
             <FieldLabel htmlFor="message">Message (optional)</FieldLabel>
-            <Input id="message" disabled={isPending} {...form.register("message")} />
+            <Input
+              id="message"
+              placeholder="Add a note for your teammate"
+              disabled={isPending}
+              {...form.register("message")}
+            />
             {form.formState.errors.message ? (
               <FieldDescription className="text-red-500">
                 {form.formState.errors.message.message}

@@ -14,6 +14,7 @@ async function getData() {
       managerAllocationFrequency: true,
       peerAllocationLimit: true,
       peerAllocationFrequency: true,
+      peerRecognitionCategoriesEnabled: true,
     },
   });
 
@@ -29,12 +30,6 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-        <p className="text-muted-foreground">
-          Configure tenant allocation rules for manager and peer point budgets.
-        </p>
-      </div>
       <SettingsForm
         canEdit={canEdit}
         defaultValues={{
@@ -43,6 +38,7 @@ export default async function SettingsPage() {
           peerAllocationLimit: settings.peerAllocationLimit,
           peerAllocationFrequency: settings.peerAllocationFrequency,
         }}
+        peerRecognitionCategoriesEnabled={settings.peerRecognitionCategoriesEnabled}
       />
     </div>
   );

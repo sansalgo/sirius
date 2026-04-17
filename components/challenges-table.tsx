@@ -136,15 +136,7 @@ export function ChallengesTable({
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Challenges</h2>
-          <p className="text-sm text-muted-foreground">
-            {isEmployeeView
-              ? "Complete challenges to earn points."
-              : "Manage challenges and review employee submissions."}
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         {canManage && <AddChallengeModal />}
       </div>
 

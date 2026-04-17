@@ -12,6 +12,7 @@ import {
 } from "@/schemas/challenge";
 import { createChallengeAction, updateChallengeAction } from "@/actions/challenge";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -70,11 +71,11 @@ const defaultValues: CreateChallengeInput = {
   endDate: "",
   fields: [
     {
-      key: "proof_link",
-      label: "Proof link",
-      type: "LINK",
-      placeholder: "https://...",
-      helpText: "Paste the link reviewers can use to verify completion.",
+      key: "",
+      label: "",
+      type: "TEXT",
+      placeholder: "",
+      helpText: "",
       required: true,
     },
   ],
@@ -268,11 +269,25 @@ export function AddChallengeModal({ challenge, trigger }: AddChallengeModalProps
           <div className="grid gap-4 md:grid-cols-2">
             <Field>
               <FieldLabel htmlFor="challenge-start-date">Start Date</FieldLabel>
-              <Input id="challenge-start-date" type="date" {...form.register("startDate")} />
+              <DatePicker
+                id="challenge-start-date"
+                placeholder="Pick a start date"
+                value={form.watch("startDate") ?? ""}
+                onChange={(val) =>
+                  form.setValue("startDate", val, { shouldDirty: true, shouldValidate: true })
+                }
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor="challenge-end-date">End Date</FieldLabel>
-              <Input id="challenge-end-date" type="date" {...form.register("endDate")} />
+              <DatePicker
+                id="challenge-end-date"
+                placeholder="Pick an end date"
+                value={form.watch("endDate") ?? ""}
+                onChange={(val) =>
+                  form.setValue("endDate", val, { shouldDirty: true, shouldValidate: true })
+                }
+              />
               {form.formState.errors.endDate ? (
                 <FieldDescription className="text-red-500">
                   {form.formState.errors.endDate.message}
@@ -326,7 +341,11 @@ export function AddChallengeModal({ challenge, trigger }: AddChallengeModalProps
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field>
                     <FieldLabel htmlFor={`fields.${index}.label`}>Label</FieldLabel>
-                    <Input id={`fields.${index}.label`} {...form.register(`fields.${index}.label`)} />
+                    <Input
+                      id={`fields.${index}.label`}
+                      placeholder="e.g. Proof link"
+                      {...form.register(`fields.${index}.label`)}
+                    />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor={`fields.${index}.key`}>Key</FieldLabel>
@@ -388,6 +407,7 @@ export function AddChallengeModal({ challenge, trigger }: AddChallengeModalProps
                     <FieldLabel htmlFor={`fields.${index}.placeholder`}>Placeholder</FieldLabel>
                     <Input
                       id={`fields.${index}.placeholder`}
+                      placeholder="e.g. https://..."
                       {...form.register(`fields.${index}.placeholder`)}
                     />
                   </Field>
