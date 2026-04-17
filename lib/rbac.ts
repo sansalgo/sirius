@@ -21,6 +21,7 @@ export type Permission =
   | "challenges.manage"
   | "settings.view"
   | "settings.manage"
+  | "categories.manage"
 
 const rolePermissions: Record<AppRole, readonly Permission[]> = {
   EMPLOYEE: [
@@ -47,6 +48,8 @@ const rolePermissions: Record<AppRole, readonly Permission[]> = {
     "challenges.view",
     "challenges.submit",
     "challenges.review",
+    "settings.view",
+    "categories.manage",
   ],
   ADMIN: [
     "dashboard.view",
@@ -65,6 +68,7 @@ const rolePermissions: Record<AppRole, readonly Permission[]> = {
     "challenges.manage",
     "settings.view",
     "settings.manage",
+    "categories.manage",
   ],
 }
 

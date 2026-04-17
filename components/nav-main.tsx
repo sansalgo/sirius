@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Settings,
   StarIcon,
+  Tag,
   Target,
   Users,
   Wallet,
@@ -27,6 +28,7 @@ const iconMap = {
   recognition: Handshake,
   challenges: Target,
   employees: Users,
+  categories: Tag,
   settings: Settings,
 } as const
 
