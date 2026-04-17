@@ -109,11 +109,12 @@ model Tenant {
   settings             TenantSettings?
   rewards              Reward[]
   redemptions          RewardRedemption[]
-  challenges           Challenge[]
-  challengeSubmissions ChallengeSubmission[]
-  subscriptions        TenantSubscription[]
-  billingRecords       BillingRecord[]
-  invitations          EmployeeInvitation[]
+  challenges                    Challenge[]
+  challengeSubmissions          ChallengeSubmission[]
+  subscriptions                 TenantSubscription[]
+  billingRecords                BillingRecord[]
+  invitations                   EmployeeInvitation[]
+  peerRecognitionCategories     PeerRecognitionCategory[]
 
   @@map("tenant")
 }
@@ -222,6 +223,9 @@ model PointLedger {
   toUser     User       @relation("ToUser", fields: [toUserId], references: [id])
   amount     Int
   type       LedgerType
+  note       String?
+  categoryId String?
+  category   PeerRecognitionCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt  DateTime   @default(now())
 
   @@index([tenantId, toUserId])
@@ -256,6 +260,8 @@ model TenantSettings {
 
   peerAllocationLimit     Int                 @default(0)
   peerAllocationFrequency AllocationFrequency @default(MONTHLY)
+
+  peerRecognitionCategoriesEnabled Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -484,4 +490,21 @@ model EmployeeInvitation {
   @@index([tenantId, status])
   @@index([token])
   @@map("employee_invitation")
+}
+
+model PeerRecognitionCategory {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  points      Int
+  status      Status   @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pointLedgers PointLedger[]
+
+  @@index([tenantId, status])
+  @@map("peer_recognition_category")
 }
