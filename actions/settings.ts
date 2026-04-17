@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
-import { pointsSettingsSchema } from "@/schemas/points-settings";
+import { peerCategoriesToggleSchema, pointsSettingsSchema } from "@/schemas/points-settings";
 
 export async function getTenantSettings() {
   try {
@@ -18,12 +18,40 @@ export async function getTenantSettings() {
         managerAllocationFrequency: true,
         peerAllocationLimit: true,
         peerAllocationFrequency: true,
+        peerRecognitionCategoriesEnabled: true,
       },
     });
 
     return { success: true, settings };
   } catch (error: unknown) {
     return { error: getActionErrorMessage(error, "Failed to load tenant settings.") };
+  }
+}
+
+export async function togglePeerRecognitionCategories(
+  data: z.infer<typeof peerCategoriesToggleSchema>
+) {
+  const result = peerCategoriesToggleSchema.safeParse(data);
+  if (!result.success) {
+    return { error: result.error.issues[0].message };
+  }
+
+  try {
+    const { user } = await getActionAuthContext("categories.manage");
+
+    const settings = await prisma.tenantSettings.upsert({
+      where: { tenantId: user.tenantId },
+      update: { peerRecognitionCategoriesEnabled: result.data.peerRecognitionCategoriesEnabled },
+      create: {
+        tenantId: user.tenantId,
+        peerRecognitionCategoriesEnabled: result.data.peerRecognitionCategoriesEnabled,
+      },
+      select: { peerRecognitionCategoriesEnabled: true },
+    });
+
+    return { success: true, settings };
+  } catch (error: unknown) {
+    return { error: getActionErrorMessage(error, "Failed to update setting.") };
   }
 }
 
