@@ -4,11 +4,7 @@ import { z } from "zod";
 import { getActionAuthContext, getActionErrorMessage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getAllocationPeriod } from "@/lib/utils";
-import {
-  allocatePointsSchema,
-  redeemPointsSchema,
-  adjustPointsSchema,
-} from "@/schemas/points";
+import { allocatePointsSchema } from "@/schemas/points";
 
 /**
  * Allocate points from Manager/Owner/Admin to an active user
@@ -131,146 +127,6 @@ export async function allocatePoints(data: z.infer<typeof allocatePointsSchema>)
 }
 
 /**
- * Redeem points manually (called by employees)
- */
-export async function redeemPoints(data: z.infer<typeof redeemPointsSchema>) {
-  const result = redeemPointsSchema.safeParse(data);
-  if (!result.success) {
-    return { error: result.error.issues[0].message };
-  }
-
-  const { amount } = result.data;
-
-  try {
-    const { session, user: currentUser } = await getActionAuthContext("rewards.redeem");
-    const { tenantId } = currentUser;
-
-    await prisma.$transaction(async (tx) => {
-      const wallet = await tx.wallet.findUnique({
-        where: {
-          tenantId_userId: {
-            tenantId,
-            userId: session.user.id,
-          },
-        },
-      });
-
-      const availablePoints = (wallet?.totalPoints ?? 0) - (wallet?.reservedPoints ?? 0);
-      if (!wallet || availablePoints < amount) {
-        throw new Error("Insufficient point balance.");
-      }
-
-      await tx.pointLedger.create({
-        data: {
-          tenantId,
-          fromUserId: null,
-          toUserId: session.user.id,
-          amount: -amount,
-          type: "REWARD",
-        },
-      });
-
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: {
-          totalPoints: { decrement: amount },
-        },
-      });
-    });
-
-    return { success: true };
-  } catch (error: unknown) {
-    console.error("Point redemption error:", error);
-    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
-  }
-}
-
-/**
- * Manual adjustment by ADMIN
- */
-export async function adjustPoints(data: z.infer<typeof adjustPointsSchema>) {
-  const result = adjustPointsSchema.safeParse(data);
-  if (!result.success) {
-    return { error: result.error.issues[0].message };
-  }
-
-  // reason mapped here but DB only has generic ledger fields.
-  const { userId, amount } = result.data; 
-
-  try {
-    const { session, user: currentUser } = await getActionAuthContext("points.adjust");
-    const { tenantId } = currentUser;
-
-    const targetUser = await prisma.user.findFirst({
-      where: {
-        id: userId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!targetUser) {
-      return { error: "Target user not found or unauthorized." };
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const wallet = await tx.wallet.findUnique({
-        where: {
-          tenantId_userId: {
-            tenantId,
-            userId,
-          },
-        },
-      });
-
-      if (amount < 0) {
-        if (!wallet) {
-          throw new Error("Cannot adjust points because wallet was not found.");
-        }
-        if (wallet.totalPoints + amount < wallet.reservedPoints) {
-          throw new Error("Cannot reduce total points below reserved points.");
-        }
-      }
-
-      // Record point ledger
-      await tx.pointLedger.create({
-        data: {
-          tenantId,
-          fromUserId: session.user.id,
-          toUserId: userId,
-          amount,
-          type: "ADJUSTMENT",
-        },
-      });
-
-      // Adjust wallet
-      await tx.wallet.upsert({
-        where: {
-          tenantId_userId: {
-            tenantId,
-            userId,
-          },
-        },
-        update: {
-          totalPoints: { increment: amount },
-        },
-        create: {
-          tenantId,
-          userId,
-          totalPoints: amount > 0 ? amount : 0,
-          reservedPoints: 0,
-        },
-      });
-    });
-
-    return { success: true };
-  } catch (error: unknown) {
-    console.error("Point adjustment error:", error);
-    return { error: getActionErrorMessage(error, "An unexpected error occurred.") };
-  }
-}
-
-/**
  * Returns total/reserved/available points and last 20 ledger entries for the logged in user
  */
 export async function getUserBalance() {
@@ -312,4 +168,3 @@ export async function getUserBalance() {
   }
 }
 
-export const allocatePointsAction = allocatePoints;

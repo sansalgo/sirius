@@ -1,6 +1,6 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -32,6 +32,11 @@ export function NavUser({
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const { data: session } = authClient.useSession()
+
+  const initial = session?.user?.name
+    ? session.user.name[0].toUpperCase()
+    : "?"
 
   const handleSignOut = () => {
     startTransition(async () => {
@@ -58,8 +63,7 @@ export function NavUser({
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Avatar>
-              <AvatarImage src="https://github.com/shadcn.png" alt="shadcn" />
-              <AvatarFallback>LR</AvatarFallback>
+              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">{initial}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>

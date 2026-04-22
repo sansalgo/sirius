@@ -85,9 +85,6 @@ export async function ensureTenantOwner(tenantId: string) {
   };
 }
 
-export async function getTenantOwner(tenantId: string) {
-  return ensureTenantOwner(tenantId);
-}
 
 export async function getCurrentTenantSubscription(tenantId: string) {
   return prisma.tenantSubscription.findFirst({

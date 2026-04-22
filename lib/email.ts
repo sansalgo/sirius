@@ -168,69 +168,6 @@ export async function sendPasswordResetEmail({
   await sendEmail({ to, subject: `Reset your ${APP_NAME} password`, html });
 }
 
-export async function sendSubscriptionGracePeriodEmail({
-  to,
-  name,
-  gracePeriodEndsAt,
-}: {
-  to: string;
-  name: string;
-  gracePeriodEndsAt: Date;
-}) {
-  const daysLeft = Math.max(
-    0,
-    Math.ceil((gracePeriodEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  );
-
-  const html = emailLayout(`
-    ${heading("Action required: Renew your subscription")}
-    ${paragraph(`Hi ${name},`)}
-    ${paragraph(`Your ${APP_NAME} Pro subscription payment failed. You have a <strong>${daysLeft}-day grace period</strong> to renew before your account reverts to the Free plan (10 seats).`)}
-    ${paragraph("Your team's access and data are safe. Renew now to avoid any interruption.")}
-    ${primaryButton("Renew Subscription", `${APP_URL}/billing`)}
-    ${mutedText(`Your grace period ends on ${gracePeriodEndsAt.toLocaleDateString("en-IN", { dateStyle: "long" })}.`)}
-  `);
-
-  await sendEmail({
-    to,
-    subject: `Action required: Renew your ${APP_NAME} subscription`,
-    html,
-  });
-}
-
-export async function sendSubscriptionExpiredEmail({
-  to,
-  name,
-  overQuotaSeats,
-}: {
-  to: string;
-  name: string;
-  overQuotaSeats: number;
-}) {
-  const overQuotaNote =
-    overQuotaSeats > 0
-      ? paragraph(
-          `Your workspace currently has <strong>${overQuotaSeats} seat${overQuotaSeats > 1 ? "s" : ""} over the Free plan limit</strong>. Adding new team members is paused until you upgrade or remove members.`
-        )
-      : "";
-
-  const html = emailLayout(`
-    ${heading("Your Pro subscription has expired")}
-    ${paragraph(`Hi ${name},`)}
-    ${paragraph(`Your ${APP_NAME} Pro subscription has expired and your workspace has reverted to the Free plan. Your team's existing data is fully intact.`)}
-    ${overQuotaNote}
-    ${paragraph("Upgrade to Pro to restore unlimited seats and continue growing your team.")}
-    ${primaryButton("Upgrade to Pro", `${APP_URL}/billing`)}
-    ${mutedText(`Need help? Reach us at ${SUPPORT_EMAIL}`)}
-  `);
-
-  await sendEmail({
-    to,
-    subject: `Your ${APP_NAME} Pro subscription has expired`,
-    html,
-  });
-}
-
 export async function sendEmailVerificationEmail({
   to,
   name,
