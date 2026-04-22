@@ -19,7 +19,7 @@ const APP_URL =
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "Sirius — Employee Recognition & Rewards",
+    default: "Sirius - Employee Recognition & Rewards",
     template: "%s | Sirius",
   },
   description:
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: APP_URL,
     siteName: "Sirius",
-    title: "Sirius — Employee Recognition & Rewards",
+    title: "Sirius - Employee Recognition & Rewards",
     description:
       "Sirius helps teams run employee recognition, point budgets, rewards, and challenges from a single workspace.",
     // Replace with your actual OG image path under /public
@@ -40,13 +40,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Sirius — Employee Recognition & Rewards",
+        alt: "Sirius - Employee Recognition & Rewards",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sirius — Employee Recognition & Rewards",
+    title: "Sirius - Employee Recognition & Rewards",
     description:
       "Sirius helps teams run employee recognition, point budgets, rewards, and challenges from a single workspace.",
     images: ["/og-image.png"],
@@ -60,7 +60,6 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    // Replace with your actual favicon paths
     icon: "/favicon.ico",
     shortcut: "/favicon-16x16.png",
     apple: "/apple-touch-icon.png",

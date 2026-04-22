@@ -47,21 +47,3 @@ export async function checkAuthRateLimit(identifier: string): Promise<RateLimitR
   const result = await limiter.limit(identifier);
   return { success: result.success, remaining: result.remaining, reset: result.reset };
 }
-
-export async function checkWebhookRateLimit(identifier: string): Promise<RateLimitResult> {
-  const r = getRedis();
-
-  if (!r) {
-    return { success: true, remaining: 100, reset: 0 };
-  }
-
-  // 100 webhook calls per minute per source IP
-  const limiter = new Ratelimit({
-    redis: r,
-    limiter: Ratelimit.slidingWindow(100, "60s"),
-    prefix: "rl:webhook",
-  });
-
-  const result = await limiter.limit(identifier);
-  return { success: result.success, remaining: result.remaining, reset: result.reset };
-}
